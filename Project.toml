@@ -1,0 +1,10 @@
+name = "Riemann1D"
+uuid = "24a25a91-50c3-41ab-a946-3c250fa2a1c5"
+version = "0.1.0"
+authors = ["NCC79601 <ncc79601@163.com>"]
+
+[deps]
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+
+[compat]
+ForwardDiff = "1.3.3"
