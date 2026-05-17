@@ -57,27 +57,11 @@ end
 abstract type AbstractRiemannSolution end
 
 struct ExactRiemannSolution{T <: Real} <: AbstractRiemannSolution
-    # equation of state
     eos::PerfectGasEOS
-
-    # initial data
     W_L::PrimitiveState{T}
     W_R::PrimitiveState{T}
-
-    # star values
-    p★  ::T
-    u★  ::T
-    ρ★_L::T
-    ρ★_R::T
-    
-    # left wave structure
-    wave_type_L::NonlinearWaveType
-    S_L   ::T
-    head_L::T
-    tail_L::T
-    # right wave structure
-    wave_type_R::NonlinearWaveType
-    S_R   ::T
-    head_R::T
-    tail_R::T
+    p★::T
+    u★::T
+    left_wave::NonlinearWaveStructure{T}
+    right_wave::NonlinearWaveStructure{T}
 end
