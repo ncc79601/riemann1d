@@ -56,7 +56,7 @@ function solve_p★(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS
 
         # Newton-Raphson iteration
         Δp = -residual / deriv
-        p★ = p★ + Δp
+        p★ = max(p★ + Δp, 1e-14)  # avoid negative pressure
         # TODO: p★ < 0?
     end
 
