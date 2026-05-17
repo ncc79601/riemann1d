@@ -38,3 +38,6 @@ outputs/
 
 # Documenter.jl
 docs/build/
+
+# Misc
+design.md
