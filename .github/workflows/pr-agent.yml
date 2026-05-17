@@ -19,8 +19,14 @@ jobs:
         id: pragent
         uses: the-pr-agent/pr-agent@main
         env:
-          OPENAI.API_BASE: "https://api.deepseek.com"
-          config.model: "deepseek-v4-pro"
-          config.fallback_models: '["deepseek-v4-flash"]'
           OPENAI_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          config.model: "deepseek-v4-pro"
+          config.fallback_models: '["deepseek-v4-flash"]'
+          config.custom_model_max_tokens: "128000"
+          # Ollama configuration
+          OLLAMA.API_BASE: "https://api.deepseek.com"
+          # Tool configuration
+          github_action_config.auto_review: "true"
+          github_action_config.auto_describe: "true"
+          github_action_config.auto_improve: "true"
