@@ -201,7 +201,7 @@ function solve_Riemann_problem(W_L::PrimitiveState, W_R::PrimitiveState, eos::Pe
                               max_iter=50, tol=1e-10)
 
     if isvacuum(W_L, W_R, eos)
-        @error "initial states lead to presence of vacuum in the solution, which is not supported by this solver"
+        throw(ArgumentError("initial states lead to presence of vacuum in the solution, which is not supported by this solver"))
     end
 
     p★ = solve_p★(W_L, W_R, eos; init_guess_method=init_guess_method, max_iter=max_iter, tol=tol)
