@@ -27,6 +27,7 @@ function guess_p★(W_L::PrimitiveState, W_R::PrimitiveState)
     # extract primitive variables
     p_L = W_L.p; p_R = W_R.p
     # simple arithmetic mean
+    # TODO: TR / TS / PV guess
     return (p_L + p_R) / 2
 end
 
