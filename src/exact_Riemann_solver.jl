@@ -1,3 +1,19 @@
+"""
+    pressure_function(p::Real, W_K::PrimitiveState, eos::PerfectGasEOS)
+
+Single-sided pressure function ``f_K(p)`` for state `K ∈ {L, R}`
+
+# Arguments
+- `p::Real`: guessed star-region pressure
+- `W_K::PrimitiveState`: initial state on side `K`
+- `eos::PerfectGasEOS`: equation of state
+
+# Returns
+- `f_K(p)`: the velocity jump across the wave
+
+# References
+- RmSv-4.2
+"""
 function pressure_function(p::Real, W_K::PrimitiveState, eos::PerfectGasEOS)
     # f_L and f_R
     # [reference] RmSv-4.2
@@ -6,7 +22,7 @@ function pressure_function(p::Real, W_K::PrimitiveState, eos::PerfectGasEOS)
     γ = eos.γ
     A_K = 2 / (ρ_K * (γ + 1))
     B_K = (γ - 1) / (γ + 1) * p_K
-    
+
     if p > p_K # shock, from Rankine-Hugoniot condition
         return (p - p_K) * sqrt(A_K / (p + B_K))
     else # rarefaction, from generalized Riemann invariants
@@ -16,16 +32,51 @@ function pressure_function(p::Real, W_K::PrimitiveState, eos::PerfectGasEOS)
 end
 
 
+"""
+    pressure_function(p::Real, W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS)
+
+Full pressure function ``f(p) = f_L(p) + f_R(p) + u_R - u_L``. The star-region pressure `p★` is the root of this function. Used by the Newton–Raphson solver in [`solve_p★_Newton_loop`](@ref).
+
+# Arguments
+- `p::Real`: guessed star-region pressure
+- `W_L::PrimitiveState`: initial left state
+- `W_R::PrimitiveState`: initial right state
+- `eos::PerfectGasEOS`: equation of state
+
+# Returns
+- `f(p)`: pressure function value
+"""
 function pressure_function(p::Real, W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS)
-    # extract primitive variables
     u_L, u_R = W_L.u, W_R.u
     return pressure_function(p, W_L, eos) + pressure_function(p, W_R, eos) + (u_R - u_L)
 end
 
 
+"""
+    PressureGuessMethod
+
+Enumeration of initial pressure guess methods:
+- `TR`: two rarefactions
+- `TS`: two shocks
+- `PV`: primitive variable linearisation
+"""
 @enum PressureGuessMethod TR TS PV
 
 
+"""
+    guess_p★(W_L, W_R, eos; method = TS)
+
+Compute an initial guess for the star-region pressure `p★`.
+
+# Arguments
+- `W_L::PrimitiveState`: initial left state
+- `W_R::PrimitiveState`: initial right state
+- `eos::PerfectGasEOS`: equation of state
+- `method::PressureGuessMethod = TS`: guess method (`PV`, `TR`, or `TS`)
+
+# Returns
+- Initial estimate of `p★`
+"""
 function guess_p★(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS; method::PressureGuessMethod = TS)
     # extract primitive variables
     ρ_L, u_L, p_L = W_L.ρ, W_L.u, W_L.p
@@ -40,7 +91,7 @@ function guess_p★(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS
         g_L(p) = √(A_L / (p + B_L))
         g_R(p) = √(A_R / (p + B_R))
 
-        p₀ = guess_p★(W_L, W_R, eos,method=PV) # PV guess as initial guess
+        p₀ = guess_p★(W_L, W_R, eos, method=PV) # PV guess as initial guess
         return (g_L(p₀) * p_L + g_R(p₀) * p_R - (u_R - u_L)) / (g_L(p₀) + g_R(p₀))
     
     elseif method == TR # two-rarefaction guess
@@ -59,10 +110,26 @@ function guess_p★(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS
 end
 
 
+"""
+    solve_p★_Newton_loop(W_L, W_R, eos, p0; max_iter=50, tol=1e-10)
+
+Low-level Newton–Raphson iteration for the star-region pressure solution. Separated from [`solve_p★`](@ref) so that iteration counts can be inspected (for benchmarking initial guess methods). Uses `ForwardDiff.derivative` for automatic differentiation of [`pressure_function`](@ref).
+
+# Arguments
+- `W_L::PrimitiveState`: initial left state
+- `W_R::PrimitiveState`: initial right state
+- `eos::PerfectGasEOS`: equation of state
+- `p0`: initial guess for `p★` (obtained using [`guess_p★`](@ref))
+- `max_iter::Int = 50`: maximum iteration number
+- `tol::Real = 1e-10`: convergence tolerance on ``|f(p)|``
+
+# Returns
+- `(p★, n_iter)`: converged star-region pressure and number of iterations taken
+"""
 function solve_p★_Newton_loop(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS, p0;
                              max_iter=50, tol=1e-10)
-    f(p) = pressure_function(p, W_L, W_R, eos)
-    p★ = p0
+    f(p) = pressure_function(p, W_L, W_R, eos) # currying the pressure function
+    p★ = p0 # initial guess
 
     for i in 1:max_iter
         residual = f(p★)
@@ -73,7 +140,7 @@ function solve_p★_Newton_loop(W_L::PrimitiveState, W_R::PrimitiveState, eos::P
             return (p★, i)
         end
 
-        deriv = ForwardDiff.derivative(f, p★)
+        deriv = ForwardDiff.derivative(f, p★) # automatic differentiation
         if abs(deriv) < tol
             @warn "derivative close to zero at iteration $i, stopping"
             return (p★, i)
@@ -88,6 +155,22 @@ function solve_p★_Newton_loop(W_L::PrimitiveState, W_R::PrimitiveState, eos::P
 end
 
 
+"""
+    solve_p★(W_L, W_R, eos; init_guess_method=TS, max_iter=50, tol=1e-10)
+
+Solve for the star-region pressure ``p_*`` in the Riemann problem. Use [`guess_p★`](@ref) to get the initial guess of `p★` and then call [`solve_p★_Newton_loop`](@ref).
+
+# Arguments
+- `W_L::PrimitiveState`: initial left state
+- `W_R::PrimitiveState`: initial right state
+- `eos::PerfectGasEOS`: equation of state
+- `init_guess_method::PressureGuessMethod = TS`: initial guess method
+- `max_iter::Int = 50`: maximum iteration number
+- `tol::Real = 1e-10`: convergence tolerance
+
+# Returns
+- `p★`: the star-region pressure
+"""
 function solve_p★(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS;
                   init_guess_method::PressureGuessMethod=TS, max_iter=50, tol=1e-10)
     p0 = guess_p★(W_L, W_R, eos, method=init_guess_method)
@@ -96,13 +179,29 @@ function solve_p★(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS
 end
 
 
+"""
+    calc_u★_from_p★(W_L, W_R, eos, p★)
+
+Compute ``u_*`` from ``p_*`` using the relation ``u_* = \\frac{1}{2}(u_L + u_R) + \\frac{1}{2}(f_R(p_*) - f_L(p_*))``.
+
+# Arguments
+- `W_L::PrimitiveState`: initial left state
+- `W_R::PrimitiveState`: initial right state
+- `eos::PerfectGasEOS`: equation of state
+- `p★::Real`: star-region pressure (from [`solve_p★`](@ref))
+
+# Returns
+- `u★`: star-region velocity
+
+# References
+RmSv-4.2
+"""
 function calc_u★_from_p★(
     W_L::PrimitiveState,
     W_R::PrimitiveState,
     eos::PerfectGasEOS,
     p★ ::Real
 )
-    # [reference] RmSv-4.2
     u_L, u_R = W_L.u, W_R.u
     f_L = pressure_function(p★, W_L, eos)
     f_R = pressure_function(p★, W_R, eos)
@@ -110,6 +209,30 @@ function calc_u★_from_p★(
 end
 
 
+"""
+    calc_wave_structure_from_p★_and_u★(W_L, W_R, eos, p★, u★)
+
+Determine the full wave structure given the star-region values.
+
+For each side (left / right), decides whether the wave is a shock or a
+rarefaction, and computes:
+- For a **shock**: shock speed ``S`` and post-shock density ``\\rho_*``.
+- For a **rarefaction**: head and tail velocities of the expansion fan,
+  and post-rarefaction density ``\\rho_*``.
+
+# Arguments
+- `W_L::PrimitiveState`: initial left state
+- `W_R::PrimitiveState`: initial right state
+- `eos::PerfectGasEOS`: equation of state
+- `p★::Real`: star-region pressure
+- `u★::Real`: star-region velocity
+
+# Returns
+- `(left_wave, right_wave)`: a pair of [`NonlinearWaveStructure`](@ref) objects
+
+# References
+RmSv-3.1, RmSv-4.4
+"""
 function calc_wave_structure_from_p★_and_u★(
     W_L::PrimitiveState,
     W_R::PrimitiveState,
@@ -183,8 +306,23 @@ function calc_wave_structure_from_p★_and_u★(
 end
 
 
+"""
+    isvacuum(W_L, W_R, eos)
+
+Test whether the given initial states lead to a vacuum in the solution.
+
+# Arguments
+- `W_L::PrimitiveState`: initial left state
+- `W_R::PrimitiveState`: initial right state
+- `eos::PerfectGasEOS`: equation of state
+
+# Returns
+- `true` if a vacuum region would appear, `false` otherwise
+
+# References
+RmSv-4.6
+"""
 function isvacuum(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS)
-    # [reference] RmSv-4.6
     ρ_L, u_L, p_L = W_L.ρ, W_L.u, W_L.p
     ρ_R, u_R, p_R = W_R.ρ, W_R.u, W_R.p
     γ = eos.γ
@@ -196,6 +334,36 @@ function isvacuum(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS)
 end
 
 
+"""
+    solve_Riemann_problem(W_L, W_R, eos; init_guess_method=TS, max_iter=50, tol=1e-10)
+
+Solve the one-dimensional Riemann problem exactly for the compressible
+Euler equations with a perfect gas equation of state:
+1. Check for vacuum condition ([`isvacuum`](@ref)).
+2. Solve ``p_*`` via Newton–Raphson ([`solve_p★`](@ref)).
+3. Compute ``u_*`` from ``p_*`` ([`calc_u★_from_p★`](@ref)).
+4. Determine wave structure ([`calc_wave_structure_from_p★_and_u★`](@ref)).
+5. Assemble and return the complete solution.
+
+# Arguments
+- `W_L::PrimitiveState`: initial left state ``(\\rho_L, u_L, p_L)``
+- `W_R::PrimitiveState`: initial right state ``(\\rho_R, u_R, p_R)``
+- `eos::PerfectGasEOS`: equation of state
+- `init_guess_method::PressureGuessMethod = TS`: initial guess strategy
+- `max_iter::Int = 50`: maximum Newton iterations
+- `tol::Real = 1e-10`: convergence tolerance
+
+# Returns
+- `ExactRiemannSolution`: the complete exact solution
+
+# Examples
+```julia
+W_L = PrimitiveState(ρ=1.0, u=0.0, p=1.0)
+W_R = PrimitiveState(ρ=0.125, u=0.0, p=0.1)
+eos = PerfectGasEOS(γ=1.4)
+sol = solve_Riemann_problem(W_L, W_R, eos)
+```
+"""
 function solve_Riemann_problem(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS;
                               init_guess_method::PressureGuessMethod=TS,
                               max_iter=50, tol=1e-10)
@@ -212,6 +380,22 @@ function solve_Riemann_problem(W_L::PrimitiveState, W_R::PrimitiveState, eos::Pe
 end
 
 
+"""
+    sample_solution(x, t, solution::ExactRiemannSolution)
+
+Sample the exact Riemann solution at a given point ``(x, t)``. The solution is self-similar and is solely determined by ``\\xi = x/t``.
+
+# Arguments
+- `x`: spatial coordinate
+- `t`: time coordinate (must be > 0)
+- `solution::ExactRiemannSolution`: the solution of Riemann problem (obtained from [`solve_Riemann_problem`](@ref))
+
+# Returns
+- `PrimitiveState`: ``(\\rho, u, p)`` at ``(x, t)``
+
+# References
+RmSv-4.5
+"""
 function sample_solution(x, t, solution::ExactRiemannSolution)
     t <= 0 && throw(ArgumentError("t must be larger than 0"))
     

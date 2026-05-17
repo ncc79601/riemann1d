@@ -10,3 +10,9 @@ Exact and approximate Riemann solvers for 1D shock tube problems, written in Jul
 cd examples
 julia --project=. run_sod.jl
 ```
+
+build documents:
+
+```bash
+julia --project=docs docs/make.jl
+```
