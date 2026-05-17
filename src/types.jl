@@ -33,7 +33,6 @@ struct PerfectGasEOS{T <: Real} <: AbstractEOS
 end
 # external constructors
 PerfectGasEOS(γ::Real) = PerfectGasEOS{typeof(γ)}(γ) # auto type inferring
-PerfectGasEOS() = PerfectGasEOS(1.4) # default value
 PerfectGasEOS(; γ::Real=1.4) = PerfectGasEOS(γ) # kwargs
 
 
