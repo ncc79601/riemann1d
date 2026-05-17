@@ -1,3 +1,9 @@
+"""
+    Riemann1D
+
+Exact and approximate Riemann solvers for the one-dimensional
+compressible Euler equations.
+"""
 module Riemann1D
 
 using ForwardDiff
