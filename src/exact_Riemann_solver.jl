@@ -23,21 +23,47 @@ function pressure_function(p::Real, W_L::PrimitiveState, W_R::PrimitiveState, eo
 end
 
 
-function guess_p★(W_L::PrimitiveState, W_R::PrimitiveState)
+@enum PressureGuessMethod TR TS PV
+
+
+function guess_p★(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS; method::PressureGuessMethod = TS)
     # extract primitive variables
-    p_L = W_L.p; p_R = W_R.p
-    # simple arithmetic mean
-    # TODO: TR / TS / PV guess
-    return (p_L + p_R) / 2
+    ρ_L, u_L, p_L = W_L.ρ, W_L.u, W_L.p
+    ρ_R, u_R, p_R = W_R.ρ, W_R.u, W_R.p
+    γ = eos.γ
+    
+    if method == TS # two-shock guess
+        A_L = 2 / (ρ_L * (γ + 1))
+        B_L = (γ - 1) / (γ + 1) * p_L
+        A_R = 2 / (ρ_R * (γ + 1))
+        B_R = (γ - 1) / (γ + 1) * p_R
+        g_L(p) = √(A_L / (p + B_L))
+        g_R(p) = √(A_R / (p + B_R))
+
+        p₀ = guess_p★(W_L, W_R, eos,method=PV) # PV guess as initial guess
+        return (g_L(p₀) * p_L + g_R(p₀) * p_R - (u_R - u_L)) / (g_L(p₀) + g_R(p₀))
+    
+    elseif method == TR # two-rarefaction guess
+        z = (γ - 1) / (2γ)
+        a_L = √(γ * p_L / ρ_L)
+        a_R = √(γ * p_R / ρ_R)
+
+        return ((a_L + a_R - (γ-1)/2 * (u_R - u_L)) / (a_L / p_L^z + a_R / p_R^z)) ^ (1/z)
+    
+    else # primitive-variable guess
+        a_L = √(γ * p_L / ρ_L)
+        a_R = √(γ * p_R / ρ_R)
+
+        return (p_L + p_R) / 2 + ((u_L - u_R) * (ρ_L + ρ_R) * (a_L + a_R)) / 8
+    end
 end
 
 
 function solve_p★(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS;
-                  max_iter=50, tol=1e-10)
-    # TODO: vacuum detection?
-
+                  init_guess_method::PressureGuessMethod=TS, max_iter=50, tol=1e-10)
+    
     f(p) = pressure_function(p, W_L, W_R, eos) # currying pressure function
-    p★ = guess_p★(W_L, W_R)
+    p★ = guess_p★(W_L, W_R, eos, method=init_guess_method)
 
     for i in 1:max_iter
         residual = f(p★)
@@ -56,8 +82,7 @@ function solve_p★(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS
 
         # Newton-Raphson iteration
         Δp = -residual / deriv
-        p★ = max(p★ + Δp, 1e-14)  # avoid negative pressure
-        # TODO: p★ < 0?
+        p★ = max(p★ + Δp, 1e-14) # avoid negative pressure
     end
 
     @warn "Newton-Raphson did not converge after $max_iter iterations"
@@ -152,8 +177,28 @@ function calc_wave_structure_from_p★_and_u★(
 end
 
 
-function solve_Riemann_problem(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS)
-    p★ = solve_p★(W_L, W_R, eos)
+function isvacuum(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS)
+    # [reference] RmSv-4.6
+    ρ_L, u_L, p_L = W_L.ρ, W_L.u, W_L.p
+    ρ_R, u_R, p_R = W_R.ρ, W_R.u, W_R.p
+    γ = eos.γ
+
+    a_L = √(γ * p_L / ρ_L)
+    a_R = √(γ * p_R / ρ_R)
+
+    return (u_R - u_L) >= (2/(γ-1)) * (a_L + a_R)
+end
+
+
+function solve_Riemann_problem(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS;
+                              init_guess_method::PressureGuessMethod=TS,
+                              max_iter=50, tol=1e-10)
+
+    if isvacuum(W_L, W_R, eos)
+        @error "initial states lead to presence of vacuum in the solution, which is not supported by this solver"
+    end
+
+    p★ = solve_p★(W_L, W_R, eos; init_guess_method=TS, max_iter=max_iter, tol=tol)
     u★ = calc_u★_from_p★(W_L, W_R, eos, p★)
     left_wave, right_wave =
         calc_wave_structure_from_p★_and_u★(W_L, W_R, eos, p★, u★)
