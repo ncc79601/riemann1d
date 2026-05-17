@@ -9,6 +9,8 @@ export AbstractEOS, PerfectGasEOS
 export NonlinearWaveStructure
 export AbstractRiemannSolution, ExactRiemannSolution
 
+export PressureGuessMethod, PV, TR, TS
+
 export solve_Riemann_problem
 export sample_solution
 

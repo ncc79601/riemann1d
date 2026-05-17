@@ -59,33 +59,39 @@ function guess_p★(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS
 end
 
 
-function solve_p★(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS;
-                  init_guess_method::PressureGuessMethod=TS, max_iter=50, tol=1e-10)
-    
-    f(p) = pressure_function(p, W_L, W_R, eos) # currying pressure function
-    p★ = guess_p★(W_L, W_R, eos, method=init_guess_method)
+function solve_p★_Newton_loop(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS, p0;
+                             max_iter=50, tol=1e-10)
+    f(p) = pressure_function(p, W_L, W_R, eos)
+    p★ = p0
 
     for i in 1:max_iter
         residual = f(p★)
         if isnan(residual)
             error("pressure function returned NaN at p★ = $p★")
         end
-        if abs(residual) < tol # converged
-            return p★
+        if abs(residual) < tol
+            return (p★, i)
         end
 
-        deriv = ForwardDiff.derivative(f, p★) # auto differentiation
+        deriv = ForwardDiff.derivative(f, p★)
         if abs(deriv) < tol
             @warn "derivative close to zero at iteration $i, stopping"
-            return p★
+            return (p★, i)
         end
 
-        # Newton-Raphson iteration
         Δp = -residual / deriv
-        p★ = max(p★ + Δp, 1e-14) # avoid negative pressure
+        p★ = max(p★ + Δp, 1e-14)
     end
 
     @warn "Newton-Raphson did not converge after $max_iter iterations"
+    return (p★, max_iter)
+end
+
+
+function solve_p★(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS;
+                  init_guess_method::PressureGuessMethod=TS, max_iter=50, tol=1e-10)
+    p0 = guess_p★(W_L, W_R, eos, method=init_guess_method)
+    p★, _ = solve_p★_Newton_loop(W_L, W_R, eos, p0; max_iter=max_iter, tol=tol)
     return p★
 end
 
@@ -198,7 +204,7 @@ function solve_Riemann_problem(W_L::PrimitiveState, W_R::PrimitiveState, eos::Pe
         @error "initial states lead to presence of vacuum in the solution, which is not supported by this solver"
     end
 
-    p★ = solve_p★(W_L, W_R, eos; init_guess_method=TS, max_iter=max_iter, tol=tol)
+    p★ = solve_p★(W_L, W_R, eos; init_guess_method=init_guess_method, max_iter=max_iter, tol=tol)
     u★ = calc_u★_from_p★(W_L, W_R, eos, p★)
     left_wave, right_wave =
         calc_wave_structure_from_p★_and_u★(W_L, W_R, eos, p★, u★)
