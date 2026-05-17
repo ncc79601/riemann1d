@@ -5,9 +5,9 @@ on:
     branches:
       - dev         # trigger：only when pushed to dev branch (dev)
     tags: ['*']      # trigger：when any git tag (stable)
-  pull_request:
-    branches:
-      - main
+#   pull_request:
+#     branches:
+#       - main
 
 jobs:
   build-and-deploy:
