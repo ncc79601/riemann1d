@@ -3,51 +3,52 @@ Pkg.activate(@__DIR__)
 Pkg.develop(path=joinpath(@__DIR__, ".."))
 
 using Riemann1D
+using Plots
+gr()
 
-# Riemann problem of Sod shock tube
+# --- Problem setup ---
 W_L = PrimitiveState(ρ=1.0, u=0.0, p=1.0)
 W_R = PrimitiveState(ρ=0.125, u=0.0, p=0.1)
 eos = PerfectGasEOS(γ=1.4)
 sol = solve_Riemann_problem(W_L, W_R, eos)
 
-# create 2d grid
-x_range = range(-0.5, 0.5, length=500)   # x grid
-t_range = range(0.02, 0.2, length=500)   # t grid
-X = repeat(x_range, 1, length(t_range))
-T = repeat(t_range', length(x_range), 1)
+# --- Sampling parameters ---
+x_range = range(-0.5, 0.5, length=1000)
+t_values = [0.02, 0.05, 0.10, 0.15, 0.20]
 
-# sample solution
-ρ_arr = zeros(size(X))
-u_arr = zeros(size(X))
-p_arr = zeros(size(X))
-
-for i in axes(x_range, 1), j in axes(t_range, 1)
-    state = sample_solution(x_range[i], t_range[j], sol)
-    ρ_arr[i, j] = state.ρ
-    u_arr[i, j] = state.u
-    p_arr[i, j] = state.p
+function sample_field(f, xs, ts, sol)
+    data = zeros(length(xs), length(ts))
+    for j in axes(ts, 1), i in axes(xs, 1)
+        state = sample_solution(xs[i], ts[j], sol)
+        data[i, j] = f(state)
+    end
+    return data
 end
 
-# plot
-using Plots
-plotlyjs()
-p1 = surface(X, T, ρ_arr,
-    xlabel = "x", ylabel = "t", zlabel = "ρ",
-    title  = "rho",
-    camera = (30, 45),
-    c = :RdBu)
-p2 = surface(X, T, u_arr,
-    xlabel = "x", ylabel = "t", zlabel = "u",
-    title  = "u",
-    camera = (30, 45),
-    c = :RdBu)
-p3 = surface(X, T, p_arr,
-    xlabel = "x", ylabel = "t", zlabel = "p",
-    title  = "p",
-    camera = (30, 45),
-    c = :RdBu)
-plot(p1, p2, p3, layout = (1, 3), size = (1200, 400))
+# --- Plotting: one loop over (field_symbol, title, ylabel) ---
+labels = permutedims(["t = $(t)" for t in t_values])
 
-# save to HTML
-savefig("sod_3d.html")
-println("solution plot saved to sod_3d.html")
+fields = (
+    (:ρ, "Density",  "ρ"),
+    (:u, "Velocity", "u"),
+    (:p, "Pressure", "p"),
+)
+
+plots = Any[]
+for (field, title, ylabel) in fields
+    data = sample_field(s -> getproperty(s, field), x_range, t_values, sol)
+    push!(plots, plot(x_range, data,
+        title = title, xlabel = "x", ylabel = ylabel,
+        label = labels, linewidth = 1.5, legend = :topright))
+end
+
+plt = plot(plots..., layout = (1, 3), size = (1500, 400),
+    plot_title = "Sod shock tube — exact Riemann solution",
+    titlefontsize = 10)
+
+# --- Output ---
+outdir = joinpath(@__DIR__, "..", "outputs")
+mkpath(outdir)
+outpath = joinpath(outdir, "sod_exact.png")
+savefig(plt, outpath)
+println("Plot saved to ", outpath)
