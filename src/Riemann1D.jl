@@ -9,7 +9,11 @@ module Riemann1D
 using ForwardDiff
 
 include("types.jl")
-include("exact_Riemann_solver.jl")
+include("states.jl")
+include("eos.jl")
+include("utils.jl")
+
+include("solvers/exact.jl")
 export AbstractState, PrimitiveState
 export AbstractEOS, PerfectGasEOS
 export NonlinearWaveStructure
