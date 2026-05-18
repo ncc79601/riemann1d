@@ -1,14 +1,4 @@
 """
-    WaveSpeedMethod
-
-Enumeration of wave speed estimation methods.
-
-- `Physical`: use physical eigenvalues ``\\lambda_\\pm = u \\pm a``
-"""
-@enum WaveSpeedMethod Physical
-
-
-"""
     SolverConfig{S<:AbstractRiemannSolver, T<:Real}
 
 Configuration bundle for a finite-volume simulation.

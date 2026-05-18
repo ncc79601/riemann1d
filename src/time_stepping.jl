@@ -1,4 +1,14 @@
 """
+    WaveSpeedMethod
+
+Enumeration of wave speed estimation methods.
+
+- `Physical`: use physical eigenvalues ``\\lambda_\\pm = u \\pm a``
+"""
+@enum WaveSpeedMethod Physical
+
+
+"""
     max_wave_speed(W::PrimitiveState, eos::PerfectGasEOS) -> Real
 
 Compute the maximum absolute eigenvalue for a single cell:
