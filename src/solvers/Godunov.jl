@@ -43,23 +43,6 @@ end
 
 
 """
-    _pad_and_apply_bc(W, grid, boundaries) -> OffsetArray
-
-Create a padded copy of `W` with ghost cells and apply boundary conditions.
-Physical cells are at indices `1:grid.N` in the returned `OffsetArray`.
-"""
-function _pad_and_apply_bc(W, grid::UniformGrid1D, boundaries::Vector{BoundaryFace})
-    N  = grid.N
-    ng = grid.ghost_cells
-    padded = Vector{PrimitiveState}(undef, N + 2 * ng)
-    padded[ng + 1 : ng + N] .= W
-    W_padded = OffsetArray(padded, 1 - ng : N + ng)
-    apply_bc!(W_padded, boundaries)
-    return W_padded
-end
-
-
-"""
     evolve!(U, grid::UniformGrid1D, eos::PerfectGasEOS, config::SolverConfig)
 
 Run the finite-volume Godunov scheme from ``t = 0`` to `config.max_time`.
@@ -80,13 +63,15 @@ function evolve!(
     ng = grid.ghost_cells
 
     # --- pre-allocate work arrays ---
-    U_new      = similar(U)                              # same shape as U
-    W          = Vector{PrimitiveState}(undef, N)        # physical primitive states
-    F          = Vector{Flux}(undef, N + 1)              # intercell fluxes
-    boundaries = make_boundary_faces(grid, TransmissiveBC())
+    U_new          = similar(U)                              # same shape as U
+    W              = Vector{PrimitiveState}(undef, N)        # physical primitive states
+    F              = Vector{Flux}(undef, N + 1)              # intercell fluxes
+    boundaries     = make_boundary_faces(grid, TransmissiveBC())
+    W_padded_data  = Vector{PrimitiveState}(undef, N + 2 * ng)
+    W_padded       = OffsetArray(W_padded_data, 1 - ng : N + ng)
 
-    t = zero(eltype(U[1].ρ)) # current time
-    step = 0                 # time step counter
+    t    = 0.0
+    step = 0
 
     while t < config.max_time && step < config.max_steps
         # 1. conserved → primitive
@@ -94,8 +79,8 @@ function evolve!(
             W[i] = conserved_to_primitive(U[i], eos)
         end
 
-        # 2. pad with ghost cells + apply BC
-        W_padded = _pad_and_apply_bc(W, grid, boundaries)
+        # 2. pad with ghost cells + apply BC (reuses pre-allocated W_padded)
+        apply_bc!(W, W_padded, grid, boundaries)
 
         # 3. reconstruct face values
         W_L, W_R = reconstruct_face_values(W_padded, config.limiter, grid)
