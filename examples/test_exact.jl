@@ -19,7 +19,7 @@ for prob in problems
     for method in methods
         p0 = Riemann1D.guess_p★(prob.W_L, prob.W_R, eos, method=method)
         p★, n_iter = Riemann1D.solve_p★_Newton_loop(prob.W_L, prob.W_R, eos, p0)
-        sol = solve_Riemann_problem(prob.W_L, prob.W_R, eos,
+        sol = solve_Riemann_problem_exact(prob.W_L, prob.W_R, eos,
             init_guess_method=method)
         @printf("%-7s │ %-6s │ %11.8f │ %11.8f │ %2d\n",
             prob.name, method, sol.p★, sol.u★, n_iter)

@@ -14,14 +14,14 @@ t_end = 0.2
 # =============================================================================
 # 1. Exact Riemann solution (reference)
 # =============================================================================
-sol = solve_Riemann_problem(W_L, W_R, eos)
+sol = solve_Riemann_problem_exact(W_L, W_R, eos)
 
 x_range = range(-0.5, 0.5, length=1000)
 
 function sample_field(f, xs, ts, sol)
     data = zeros(length(xs), length(ts))
     for j in axes(ts, 1), i in axes(xs, 1)
-        state = sample_solution(xs[i], ts[j], sol)
+        state = sample_exact_solution(xs[i], ts[j], sol)
         data[i, j] = f(state)
     end
     return data
@@ -63,9 +63,9 @@ p_fv = [w.p for w in W_final]
 # =============================================================================
 # 4. Exact solution at t_end on the same grid
 # =============================================================================
-ρ_exact = [sample_solution(x, t_end, sol).ρ for x in grid.x_centers]
-u_exact = [sample_solution(x, t_end, sol).u for x in grid.x_centers]
-p_exact = [sample_solution(x, t_end, sol).p for x in grid.x_centers]
+ρ_exact = [sample_exact_solution(x, t_end, sol).ρ for x in grid.x_centers]
+u_exact = [sample_exact_solution(x, t_end, sol).u for x in grid.x_centers]
+p_exact = [sample_exact_solution(x, t_end, sol).p for x in grid.x_centers]
 
 # =============================================================================
 # 5. Plot: exact (line) vs Godunov (markers)

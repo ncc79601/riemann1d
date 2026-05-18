@@ -33,32 +33,29 @@ export UniformGrid1D
 
 # boundary conditions
 include("bc.jl")
-export TransmissiveBC, BoundaryFace, ghost_state, make_boundary_faces
-export apply_bc!
 
 # MUSCL (placeholder for now)
 include("reconstruction.jl")
 export reconstruct_face_values
 
-# CFL, wave speeds, Forward Euler
-include("time_stepping.jl")
-export WaveSpeedMethod, Physical
-export max_wave_speed, compute_Δt, forward_euler_step!
-
 # dispatch stubs
 include("solvers/interface.jl")
-export compute_numerical_flux, evolve!
+export compute_numerical_flux
+
+# CFL, wave speeds, Forward Euler, intercell flux loop, main time loop
+include("evolve.jl")
+export WaveSpeedMethod, Physical
+export evolve!
 
 # exact Riemann solver
 include("solvers/exact.jl")
 export NonlinearWaveStructure
 export PressureGuessMethod, PV, TR, TS
 export ExactRiemannSolution
-export solve_Riemann_problem, sample_solution
+export solve_Riemann_problem_exact, sample_exact_solution
 
 # first-order Godunov method
 include("solvers/Godunov.jl")
 export GodunovSolver
-export compute_intercell_fluxes!
 
 end # module Riemann1D

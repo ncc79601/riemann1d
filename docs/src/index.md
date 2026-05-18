@@ -33,11 +33,11 @@ W_L = PrimitiveState(ρ=1.0, u=0.0, p=1.0)
 W_R = PrimitiveState(ρ=0.125, u=0.0, p=0.1)
 eos = PerfectGasEOS(γ=1.4)
 
-sol = solve_Riemann_problem(W_L, W_R, eos)
+sol = solve_Riemann_problem_exact(W_L, W_R, eos)
 sol.p★, sol.u★
 
 # Sample the solution at (x, t)
-sample_solution(0.2, 0.1, sol)
+sample_exact_solution(0.2, 0.1, sol)
 ```
 
 ## References
