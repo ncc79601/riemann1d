@@ -14,10 +14,11 @@ end
     max_wave_speed(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS,
                    method::WaveSpeedMethod) -> Real
 
-Compute the interface maximum wave speed from left and right states using the
+Compute the interface maximum wave speed ``S_\\max`` from left and right states using the
 specified method.  Used by Riemann solvers that require a two-state estimate.
 
-- `Physical`: ``\\max(|u_L|+a_L,\\, |u_R|+a_R)``
+method:
+- `Physical`: ``S_\\max = \\max(|u_L|+a_L,\\, |u_R|+a_R)``
 """
 function max_wave_speed(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS,
                         method::WaveSpeedMethod)
@@ -30,11 +31,11 @@ end
 
 
 """
-    compute_cfl_dt(W_arr, eos::PerfectGasEOS, grid::UniformGrid1D, cfl::Real) -> Real
+    compute_cfl_Δt(W_arr, eos::PerfectGasEOS, grid::UniformGrid1D, cfl::Real) -> Real
 
 Compute the maximum time step from the CFL condition.
 
-``\\Delta t = \\text{CFL} \\cdot \\min_i \\frac{\\Delta x}{|u_i| + a_i}``
+``\\Delta t = C_\\text{cfl} \\cdot \\frac{\\Delta x}{S_\\max}``
 
 `W_arr` must be indexed such that physical cells are at `1:grid.N`.
 """
