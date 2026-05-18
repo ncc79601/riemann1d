@@ -25,7 +25,7 @@ export reconstruct_face_values
 
 include("utils.jl")
 include("time_stepping.jl")
-export max_wave_speed, compute_cfl_dt, forward_euler_step!
+export max_wave_speed, compute_Δt, forward_euler_step!
 
 include("solvers/interface.jl")
 include("solvers/exact.jl")
