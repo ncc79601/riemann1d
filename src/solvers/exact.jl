@@ -1,4 +1,11 @@
 """
+    ExactSolver
+Abstract type representing an exact Riemann solver for the compressible Euler equations.
+"""
+struct ExactSolver <: AbstractRiemannSolver end
+
+
+"""
     NonlinearWaveType
 
 Enumeration of nonlinear wave character in the Riemann solution.
@@ -433,7 +440,10 @@ function solve_Riemann_problem(W_L::PrimitiveState, W_R::PrimitiveState, eos::Pe
         throw(ArgumentError("initial states lead to presence of vacuum in the solution, which is not supported by this solver"))
     end
 
-    p★ = solve_p★(W_L, W_R, eos; init_guess_method=init_guess_method, max_iter=max_iter, tol=tol)
+    p★ = solve_p★(
+        W_L, W_R, eos;
+        init_guess_method=init_guess_method, max_iter=max_iter, tol=tol
+    )
     u★ = calc_u★_from_p★(W_L, W_R, eos, p★)
     left_wave, right_wave =
         calc_wave_structure_from_p★_and_u★(W_L, W_R, eos, p★, u★)
@@ -518,4 +528,15 @@ function sample_solution(x, t, solution::ExactRiemannSolution)
     else # right star region
         return PrimitiveState(R.ρ★, u★, p★)
     end
+end
+
+
+function compute_numerical_flux(
+    solver::ExactSolver,
+    W_L::PrimitiveState,
+    W_R::PrimitiveState,
+    eos::PerfectGasEOS,
+)
+    W_star = sample_solution(0.0, 1.0, solve_Riemann_problem(W_L, W_R, eos))
+    return Flux(W_star, eos)
 end
