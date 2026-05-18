@@ -2,7 +2,8 @@ name: Documentation
 
 on:
   push: # OR relationships
-    # branches:
+    branches:
+      - main
     #   - dev         # trigger：only when pushed to dev branch (dev)
     tags: ['*']      # trigger：when any git tag (stable)
   pull_request:
