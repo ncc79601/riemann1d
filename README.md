@@ -4,15 +4,27 @@ Exact and approximate Riemann solvers for 1D shock tube problems, written in Jul
 
 > **Note:** This is a personal demo project created solely for learning, experimentation, and hands-on practice. It is _NOT_ intended for production use. Long-term maintenance, code quality, stability, and security updates are not guaranteed.
 
-运行 `run_sod.jl`：
+To build dependencies, run following command from repo root:
 
 ```bash
-cd examples
-julia --project=. run_sod.jl
+julia --project=. -e 'import Pkg; Pkg.instantiate()'
 ```
 
-build documents:
+To run `run_sod.jl`：
 
 ```bash
+julia --project=examples -e 'import Pkg; Pkg.develop(path=".")' # initial run
+```
+
+After building `Manifest.toml`, simply run:
+
+```bash
+julia --project=examples examples/run_sod.jl
+```
+
+To build documents:
+
+```bash
+julia --project=docs -e 'import Pkg; Pkg.develop(path=".")' # initial run
 julia --project=docs docs/make.jl
 ```
