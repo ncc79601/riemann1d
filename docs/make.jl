@@ -19,5 +19,5 @@ makedocs(
 
 deploydocs(
     repo = "github.com/NCC79601/Riemann1D.git",
-    devbranch = "dev",
+    devbranch = "main",
 )
