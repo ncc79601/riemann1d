@@ -94,7 +94,7 @@ function pressure_function(p::Real, W_K::PrimitiveState, eos::PerfectGasEOS)
     if p > p_K # shock, from Rankine-Hugoniot condition
         return (p - p_K) * sqrt(A_K / (p + B_K))
     else # rarefaction, from generalized Riemann invariants
-        a_K = √(γ * p_K / ρ_K)
+        a_K = sound_speed(W_K, eos)
         return 2a_K / (γ - 1) * ((p / p_K) ^ ((γ - 1) / (2γ)) - 1)
     end
 end
@@ -164,14 +164,14 @@ function guess_p★(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS
     
     elseif method == TR # two-rarefaction guess
         z = (γ - 1) / (2γ)
-        a_L = √(γ * p_L / ρ_L)
-        a_R = √(γ * p_R / ρ_R)
+        a_L = sound_speed(W_L, eos)
+        a_R = sound_speed(W_R, eos)
 
         return ((a_L + a_R - (γ-1)/2 * (u_R - u_L)) / (a_L / p_L^z + a_R / p_R^z)) ^ (1/z)
     
     else # primitive-variable guess
-        a_L = √(γ * p_L / ρ_L)
-        a_R = √(γ * p_R / ρ_R)
+        a_L = sound_speed(W_L, eos)
+        a_R = sound_speed(W_R, eos)
 
         return (p_L + p_R) / 2 + ((u_L - u_R) * (ρ_L + ρ_R) * (a_L + a_R)) / 8
     end
@@ -314,8 +314,8 @@ function calc_wave_structure_from_p★_and_u★(
     γ = eos.γ
 
     # speed of sound
-    a_L = √(γ * p_L / ρ_L)
-    a_R = √(γ * p_R / ρ_R)
+    a_L = sound_speed(W_L, eos)
+    a_R = sound_speed(W_R, eos)
 
     # derive left and right wave structures
     # [reference] RmSv-3.1
@@ -395,8 +395,8 @@ function isvacuum(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS)
     ρ_R, u_R, p_R = W_R.ρ, W_R.u, W_R.p
     γ = eos.γ
 
-    a_L = √(γ * p_L / ρ_L)
-    a_R = √(γ * p_R / ρ_R)
+    a_L = sound_speed(W_L, eos)
+    a_R = sound_speed(W_R, eos)
 
     return (u_R - u_L) >= (2/(γ-1)) * (a_L + a_R)
 end
@@ -496,7 +496,7 @@ function sample_exact_solution(x, t, solution::ExactRiemannSolution)
     end
     # inside WLfan (if left rarefaction)
     if L.wave_type == Rarefaction && ξ < L.tail
-        a_L = √(γ * p_L / ρ_L)
+        a_L = sound_speed(W_L, solution.eos)
         ρ = ρ_L * (2/(γ+1) + (γ-1)/((γ+1)*a_L) * (u_L - ξ)) ^ (2/(γ-1))
         u = 2/(γ+1) * ((γ-1)/2 * u_L + ξ + a_L)
         p = p_L * (ρ / ρ_L)^γ
@@ -520,7 +520,7 @@ function sample_exact_solution(x, t, solution::ExactRiemannSolution)
     end
     # inside WRfan (if right rarefaction)
     if R.wave_type == Rarefaction && ξ > R.tail
-        a_R = √(γ * p_R / ρ_R)
+        a_R = sound_speed(W_R, solution.eos)
         ρ = ρ_R * (2/(γ+1) + (γ-1)/((γ+1)*a_R) * (ξ - u_R)) ^ (2/(γ-1))
         u = 2/(γ+1) * ((γ-1)/2 * u_R + ξ - a_R)
         p = p_R * (ρ / ρ_R)^γ

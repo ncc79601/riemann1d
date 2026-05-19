@@ -15,7 +15,7 @@ Compute the maximum absolute eigenvalue for a single cell:
 ``\\lambda_\\max = |u| + a`` where ``a = \\sqrt{\\gamma p / \\rho}``.
 """
 function max_wave_speed(W::PrimitiveState, eos::PerfectGasEOS)
-    a = √(eos.γ * W.p / W.ρ)
+    a = sound_speed(W, eos)
     return abs(W.u) + a
 end
 

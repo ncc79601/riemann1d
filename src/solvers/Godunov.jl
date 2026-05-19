@@ -1,8 +1,7 @@
 """
     GodunovSolver <: AbstractRiemannSolver
 
-First-order Godunov scheme.  Uses the exact Riemann solver to compute
-numerical fluxes at each cell interface.
+First-order Godunov scheme.  Uses the exact Riemann solver to compute numerical fluxes at each cell interface.
 """
 struct GodunovSolver <: AbstractRiemannSolver end
 
@@ -10,8 +9,7 @@ struct GodunovSolver <: AbstractRiemannSolver end
 """
     compute_numerical_flux(solver::GodunovSolver, W_L, W_R, eos)
 
-Godunov flux: solve the exact Riemann problem and evaluate the physical flux
-at ``x/t = 0``.
+Godunov flux: solve the exact Riemann problem and evaluate the physical flux at ``x/t = 0``.
 """
 function compute_numerical_flux(
     solver::GodunovSolver,

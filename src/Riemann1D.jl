@@ -21,7 +21,7 @@ export PerfectGasEOS
 # primitive / conserved variables, flux structs and conversions
 include("states.jl")
 export PrimitiveState, ConservedState, Flux
-export conserved_to_primitive, primitive_to_conserved
+export conserved_to_primitive, primitive_to_conserved, sound_speed
 
 # SolverConfig
 include("utils.jl")
@@ -57,5 +57,8 @@ export solve_Riemann_problem_exact, sample_exact_solution
 # first-order Godunov method
 include("solvers/Godunov.jl")
 export GodunovSolver
+# approximate Riemann solvers: PVRS, TRRS, TSRS, AIRS, ANRS
+include("solvers/approximate.jl")
+export PVRS, TRRS, TSRS, AIRS, ANRS
 
 end # module Riemann1D
