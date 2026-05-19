@@ -34,7 +34,7 @@ function compute_numerical_flux(
     p★   = 0.5 * (p_L + p_R) + 0.5 * (u_L - u_R) * ρ̄ * ā
     u★   = 0.5 * (u_L + u_R) + 0.5 * (p_L - p_R) / (ρ̄ * ā)
     ρ★_L = ρ_L + (u_L - u★) * ρ̄ / ā
-    ρ★_R = ρ_R + (u★ - u_R) * ρ̄ / ā
+    ρ★_R = ρ_R + (u★ - u_R) * ρ̄ / ā
 
     # sample the solution at x/t = 0
     if 0 <= u_L - a_L # left data state
@@ -184,4 +184,93 @@ function compute_numerical_flux(
     )
 
     return sample_exact_solution(0.0, 1.0, sol) |> (W -> Flux(W, eos))
+end
+
+
+"""
+    AIRS <: AbstractRiemannSolver
+
+Adaptive iterative Riemann solver (AIRS). Use PVRS if ``Q:=\\frac{p_\\max}{p_\\min} < Q_\\text{user}``, else use exact solver. Default value for ``Q_\\text{user}`` is 2.
+
+# Fields:
+ - `Q_user::T`: user-specified threshold for switching between PVRS and exact solver.
+"""
+struct AIRS{T} <: AbstractRiemannSolver where T <: Real
+    Q_user::T
+end
+function AIRS(; Q_user::Real = 2.0)
+    return AIRS(Q_user)
+end
+
+
+"""
+    compute_numerical_flux(solver::AIRS, W_L, W_R, eos)
+
+Adaptive iterative Riemann solver (AIRS) flux: compute the pressure ratio ``Q = p_\\max / p_\\min``. Use PVRS if ``Q < Q_\\text{user}``, else use the exact solver.
+
+# Reference:
+RmSv-9.5
+"""
+function compute_numerical_flux(
+    solver::AIRS,
+    W_L::PrimitiveState,
+    W_R::PrimitiveState,
+    eos::PerfectGasEOS,
+)
+    p_L, p_R = W_L.p, W_R.p
+    p_max = max(p_L, p_R)
+    p_min = min(p_L, p_R)
+    Q = p_max / p_min
+    if Q < solver.Q_user
+        return compute_numerical_flux(PVRS(), W_L, W_R, eos)
+    else
+        return compute_numerical_flux(GodunovSolver(), W_L, W_R, eos)
+    end
+end
+
+
+"""
+    ANRS <: AbstractRiemannSolver
+
+Adaptive non-iterative Riemann solver (ANRS). Calculate ``p_*`` using PVRS. If ``Q:=\\frac{p_\\max}{p_\\min} < Q_\\text{user}``, use PVRS. Else, if ``p_* < p_\\min`` use TRRS, otherwise use TRRS. Default value for ``Q_\\text{user}`` is 2.
+
+# Fields:
+ - `Q_user::T`: user-specified threshold for switching between PVRS and exact solver.
+"""
+struct ANRS{T} <: AbstractRiemannSolver where T <: Real
+    Q_user::T
+end
+function ANRS(; Q_user::Real = 2.0)
+    return ANRS(Q_user)
+end
+
+
+"""
+    compute_numerical_flux(solver::ANRS, W_L, W_R, eos)
+
+Adaptive non-iterative Riemann solver (ANRS) flux: compute the pressure ratio ``Q = p_\\max / p_\\min``. If ``Q < Q_\\text{user}``, use PVRS. Else, compute the PVRS guess for ``p_*``. If ``p_* < p_\\min``, use TRRS, else use TSRS.
+
+# Reference:
+RmSv-9.5
+"""
+function compute_numerical_flux(
+    solver::ANRS,
+    W_L::PrimitiveState,
+    W_R::PrimitiveState,
+    eos::PerfectGasEOS,
+)
+    p_L, p_R = W_L.p, W_R.p
+    p_max = max(p_L, p_R)
+    p_min = min(p_L, p_R)
+    Q = p_max / p_min
+    if Q < solver.Q_user
+        return compute_numerical_flux(PVRS(), W_L, W_R, eos)
+    else
+        p★_PVRS = guess_p★(W_L, W_R, eos, method=PV)
+        if p★_PVRS < p_min
+            return compute_numerical_flux(TRRS(), W_L, W_R, eos)
+        else
+            return compute_numerical_flux(TSRS(), W_L, W_R, eos)
+        end
+    end
 end
