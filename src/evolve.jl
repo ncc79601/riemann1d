@@ -153,8 +153,9 @@ function evolve!(
         # 4. compute numerical fluxes at all N+1 interfaces
         compute_intercell_fluxes!(F, config.solver, W_L, W_R, eos)
 
-        # 5. CFL time step
-        Δt = compute_Δt(W_padded, eos, grid, config.cfl)
+        # 5. CFL time step (ramp-up: reduced CFL for initial steps)
+        cfl_now = step < config.ramp_steps ? config.ramp_cfl : config.cfl
+        Δt = compute_Δt(W_padded, eos, grid, cfl_now)
         Δt = min(Δt, config.max_time - t)
 
         # 6. forward Euler update
