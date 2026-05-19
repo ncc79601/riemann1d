@@ -37,16 +37,20 @@ x_range = range(x_min, x_max, length=1000)
 # =============================================================================
 configs = [
     ("Godunov", GodunovSolver()),
-    ("PVRS",    PVRS()),
-    ("TRRS",    TRRS()),
-    ("TSRS",    TSRS()),
-    ("AIRS",    AIRS()),
-    ("ANRS",    ANRS()),
+    # ("PVRS",    PVRS()),
+    # ("TRRS",    TRRS()),
+    # ("TSRS",    TSRS()),
+    # ("AIRS",    AIRS()),
+    # ("ANRS",    ANRS()),
+    ("HLLC",    HLLC(estimate_method=RoeEstimate)),
+    ("Roe-NoFix",         RoeSolver(entropy_fix_method=NoFix, δ=0.1)),
+    ("Roe-HartenYee",     RoeSolver(entropy_fix_method=HartenYee, δ=0.1)),
+    ("Roe-HartenHyman",   RoeSolver(entropy_fix_method=HartenHyman))
 ]
 
 results = NamedTuple[]
 for (name, solver) in configs
-    try
+    # try
         U = init_sod(grid, W_L, W_R, eos)
         config = SolverConfig(solver, cfl, t_end, 10_000)
 
@@ -63,9 +67,9 @@ for (name, solver) in configs
             n_steps = n_steps,
             runtime = runtime,
         ))
-    catch e
-        @error "Error running $name: $e"
-    end
+    # catch e
+    #     @error "Error running $name: $e"
+    # end
 end
 
 # =============================================================================

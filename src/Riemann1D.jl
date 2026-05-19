@@ -58,7 +58,17 @@ export solve_Riemann_problem_exact, sample_exact_solution
 include("solvers/Godunov.jl")
 export GodunovSolver
 # approximate Riemann solvers: PVRS, TRRS, TSRS, AIRS, ANRS
+
 include("solvers/approximate.jl")
 export PVRS, TRRS, TSRS, AIRS, ANRS
+
+include("solvers/Roe.jl") # TODO
+export RoeEntropyFix, NoFix, HartenHyman, HartenYee
+export RoeEstimate
+export RoeSolver
+
+include("solvers/HLLC.jl")
+export HLLCEstimateMethod
+export HLLC
 
 end # module Riemann1D
