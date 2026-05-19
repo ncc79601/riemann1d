@@ -10,8 +10,8 @@ HLLC Solver. Only consider the fastest left and right waves in the non-linear wa
 """
 struct HLLC <: AbstractRiemannSolver
     estimate_method::HLLCEstimateMethod
-    HLLC(estimate_method::HLLCEstimateMethod = RoeEstimate) = new(estimate_method)
 end
+HLLC(; estimate_method::HLLCEstimateMethod = RoeEstimate) = HLLC(estimate_method)
 
 
 """
