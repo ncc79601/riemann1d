@@ -127,6 +127,7 @@ end
 
 """
     primitive_to_conserved(::PrimitiveState, eos::AbstractEOS)
+
 Convert a primitive variable state to a conserved variable state.
 """
 function primitive_to_conserved(W::PrimitiveState, eos::AbstractEOS)
@@ -145,6 +146,15 @@ Speed of sound ``a = \\sqrt{\\gamma p / \\rho}`` for a perfect gas.
 """
 function sound_speed(W::PrimitiveState, eos::PerfectGasEOS)
     return √(eos.γ * W.p / W.ρ)
+end
+
+"""
+    sound_speed(U::ConservedState, eos::PerfectGasEOS) -> Real
+
+Speed of sound ``a = \\sqrt{\\gamma p / \\rho}`` for a perfect gas.
+"""
+function sound_speed(U::ConservedState, eos::PerfectGasEOS)
+    return sound_speed(conserved_to_primitive(U, eos), eos)
 end
 
 

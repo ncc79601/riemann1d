@@ -43,7 +43,8 @@ configs = [
     # ("AIRS",    AIRS()),
     # ("ANRS",    ANRS()),
     ("HLLC",    HLLC(estimate_method=RoeEstimate)),
-    ("Roe",     RoeSolver(entropy_fix_method=HartenHyman)),
+    ("Roe-HartenYee",     RoeSolver(entropy_fix_method=HartenYee, δ=0.1)),
+    ("Roe-HartenHyman",   RoeSolver(entropy_fix_method=HartenHyman))
 ]
 
 results = NamedTuple[]
