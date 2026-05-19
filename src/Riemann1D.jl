@@ -59,6 +59,6 @@ include("solvers/Godunov.jl")
 export GodunovSolver
 # approximate Riemann solvers: PVRS
 include("solvers/approximate.jl")
-export PVRS
+export PVRS, TRRS
 
 end # module Riemann1D

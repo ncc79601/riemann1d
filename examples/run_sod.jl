@@ -35,6 +35,7 @@ x_range = range(-0.5, 0.5, length=1000)
 configs = [
     ("Godunov", GodunovSolver()),
     ("PVRS",    PVRS()),
+    ("TRRS",    TRRS()),
 ]
 
 results = NamedTuple[]
