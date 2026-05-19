@@ -31,21 +31,21 @@ function compute_numerical_flux(
 
     ρ̄    = 0.5 * (ρ_L + ρ_R)
     ā    = 0.5 * (a_L + a_R)
+    ū    = 0.5 * (u_L + u_R)
     p★   = 0.5 * (p_L + p_R) + 0.5 * (u_L - u_R) * ρ̄ * ā
     u★   = 0.5 * (u_L + u_R) + 0.5 * (p_L - p_R) / (ρ̄ * ā)
     ρ★_L = ρ_L + (u_L - u★) * ρ̄ / ā
     ρ★_R = ρ_R + (u★ - u_R) * ρ̄ / ā
 
-    # sample the solution at x/t = 0
-    if 0 <= u_L - a_L # left data state
-        return Flux(W_L, eos)
-    elseif u_L - a_L < 0 <= u★ # left star-region
-        return Flux(PrimitiveState(ρ=ρ★_L, u=u★, p=p★), eos)
-    elseif u★ < 0 <= u_R + a_R # right star-region
-        return Flux(PrimitiveState(ρ=ρ★_R, u=u★, p=p★), eos)
-    else # right data state
-        return Flux(W_R, eos)
-    end
+    # from src/solvers/exact.jl
+    wave_structure_L, wave_structure_R = calc_wave_structure_from_p★_and_u★(
+        W_L, W_R, eos, p★, u★, ρ★_L, ρ★_R
+    )
+    sol = ExactRiemannSolution(
+        eos, W_L, W_R, p★, u★,
+        wave_structure_L, wave_structure_R,
+    )
+    return sample_exact_solution(0.0, 1.0, sol) |> (W -> Flux(W, eos))
 end
 
 
@@ -88,25 +88,9 @@ function compute_numerical_flux(
     ρ★_L = ρ_L * (p★ / p_L) ^ (1/γ)
     ρ★_R = ρ_R * (p★ / p_R) ^ (1/γ)
 
-    head_L = u_L - a_L
-    tail_L = u★ - sound_speed(PrimitiveState(ρ=ρ★_L, u=u★, p=p★), eos)
-    head_R = u_R + a_R
-    tail_R = u★ + sound_speed(PrimitiveState(ρ=ρ★_R, u=u★, p=p★), eos)
-
     # utilize tools from src/solvers/exact.jl to sample the solution at x/t = 0
-    wave_structure_L = NonlinearWaveStructure(
-        Rarefaction,
-        ρ★_L,
-        NaN,
-        head_L,
-        tail_L
-    )
-    wave_structure_R = NonlinearWaveStructure(
-        Rarefaction,
-        ρ★_R,
-        NaN,
-        head_R,
-        tail_R
+    wave_structure_L, wave_structure_R = calc_wave_structure_from_p★_and_u★(
+        W_L, W_R, eos, p★, u★, ρ★_L, ρ★_R
     )
     sol = ExactRiemannSolution(
         eos, W_L, W_R, p★, u★,
@@ -152,31 +136,15 @@ function compute_numerical_flux(
     g_R(p) = √(A_R / (p + B_R))
 
     p★ = (g_L(p₀)*p_L + g_R(p₀)*p_R - (u_R - u_L)) / (g_L(p₀) + g_R(p₀))
-    u★ = 0.5 * (u_L + u_R) + 0.5 * ((p★ - p_R) * g_L(p₀) - (p★ - p_L) * g_R(p₀))
+    p★ = max(0, p★) # ensure non-negative pressure
+    u★ = 0.5 * (u_L + u_R) + 0.5 * ((p★ - p_R) * g_R(p₀) - (p★ - p_L) * g_L(p₀))
     
     ρ★_L = ρ_L * (p★/p_L + (γ-1)/(γ+1)) / ((γ-1)/(γ+1) * p★/p_L + 1)
     ρ★_R = ρ_R * (p★/p_R + (γ-1)/(γ+1)) / ((γ-1)/(γ+1) * p★/p_R + 1)
 
-    # same as src/solvers/exact.jl
-    a_L = sound_speed(W_L, eos)
-    a_R = sound_speed(W_R, eos)
-    S_L = u_L - a_L * √((γ+1)/(2γ) * (p★/p_L) + (γ-1)/(2γ))
-    S_R = u_R + a_R * √((γ+1)/(2γ) * (p★/p_R) + (γ-1)/(2γ))
-
-    # utilize tools from src/solvers/exact.jl to sample the solution at x/t = 0
-    wave_structure_L = NonlinearWaveStructure(
-        Shock,
-        ρ★_L,
-        S_L,
-        NaN,
-        NaN
-    )
-    wave_structure_R = NonlinearWaveStructure(
-        Shock,
-        ρ★_R,
-        S_R,
-        NaN,
-        NaN
+    # from src/solvers/exact.jl
+    wave_structure_L, wave_structure_R = calc_wave_structure_from_p★_and_u★(
+        W_L, W_R, eos, p★, u★, ρ★_L, ρ★_R
     )
     sol = ExactRiemannSolution(
         eos, W_L, W_R, p★, u★,
