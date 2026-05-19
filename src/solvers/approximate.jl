@@ -232,7 +232,7 @@ end
 """
     ANRS <: AbstractRiemannSolver
 
-Adaptive non-iterative Riemann solver (ANRS). Calculate ``p_*`` using PVRS. If ``Q:=\\frac{p_\\max}{p_\\min} < Q_\\text{user}``, use PVRS. Else, if ``p_* < p_\\min`` use TRRS, otherwise use TRRS. Default value for ``Q_\\text{user}`` is 2.
+Adaptive non-iterative Riemann solver (ANRS). Calculate ``p_*`` using PVRS. If ``Q:=\\frac{p_\\max}{p_\\min} < Q_\\text{user}``, use PVRS. Else, if ``p_* < p_\\min`` use TRRS, otherwise use TSRS. Default value for ``Q_\\text{user}`` is 2.
 
 # Fields:
  - `Q_user::T`: user-specified threshold for switching between PVRS and exact solver.
