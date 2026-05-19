@@ -29,7 +29,7 @@ function compute_HLLC_wave_speeds(W_L::PrimitiveState, W_R::PrimitiveState, eos:
     a_R = sound_speed(W_R, eos)
 
     if method == RoeEstimate
-        _, ũ, ã = Roe_average(W_L, W_R, eos)
+        _, ũ, _, ã = Roe_average(W_L, W_R, eos)
         S_L = min(u_L - a_L, ũ - ã)
         S_R = max(u_R + a_R, ũ + ã)
     else

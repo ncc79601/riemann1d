@@ -1,9 +1,14 @@
+@enum RoeEntropyFix begin
+    None
+    HartenHyman
+end
+
 
 
 """
     Roe_average(W_L::PrimitiveState, W_R::PrimitiveState, eos::AbstractEOS)
 
-Compute Roe-averaged state variables (ρ̃, ũ, ã) for the left and right primitive states W_L and W_R, given the equation of state eos.
+Compute Roe-averaged state variables (ρ̃, ũ, H̃, ã) for the left and right primitive states W_L and W_R, given the equation of state eos.
 """
 function Roe_average(W_L::PrimitiveState, W_R::PrimitiveState, eos::AbstractEOS)
     ρ_L, u_L, p_L = W_L.ρ, W_L.u, W_L.p
@@ -20,5 +25,5 @@ function Roe_average(W_L::PrimitiveState, W_R::PrimitiveState, eos::AbstractEOS)
     H̃ = (q_L * H_L + q_R * H_R) / (q_L + q_R)
     ã = √((γ-1) * (H̃ - 0.5 * ũ^2))
 
-    return ρ̃, ũ, ã
+    return ρ̃, ũ, H̃, ã
 end
