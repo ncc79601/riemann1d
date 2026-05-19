@@ -70,7 +70,7 @@ p_exact = [sample_exact_solution(x, t_end, sol).p for x in grid.x_centers]
 # =============================================================================
 # 5. Plot: exact (line) vs Godunov (markers)
 # =============================================================================
-times_to_plot = [0.20]
+times_to_plot = [t_end]
 
 labels = permutedims(["t = $(t)" for t in times_to_plot])
 

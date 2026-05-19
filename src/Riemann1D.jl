@@ -21,7 +21,7 @@ export PerfectGasEOS
 # primitive / conserved variables, flux structs and conversions
 include("states.jl")
 export PrimitiveState, ConservedState, Flux
-export conserved_to_primitive, primitive_to_conserved
+export conserved_to_primitive, primitive_to_conserved, sound_speed
 
 # SolverConfig
 include("utils.jl")

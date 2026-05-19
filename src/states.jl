@@ -92,6 +92,16 @@ function primitive_to_conserved(W::PrimitiveState, eos::AbstractEOS)
 end
 
 
+"""
+    sound_speed(W::PrimitiveState, eos::PerfectGasEOS) -> Real
+
+Speed of sound ``a = \\sqrt{\\gamma p / \\rho}`` for a perfect gas.
+"""
+function sound_speed(W::PrimitiveState, eos::PerfectGasEOS)
+    return √(eos.γ * W.p / W.ρ)
+end
+
+
 # flux
 """
     Flux{T<:Real} <: AbstractFlux
