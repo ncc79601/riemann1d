@@ -294,6 +294,8 @@ rarefaction, and computes:
 - `eos::PerfectGasEOS`: equation of state
 - `p★::Real`: star-region pressure
 - `u★::Real`: star-region velocity
+- `ρ★_L::Real = NaN`: optional pre-computed star-region density on the left (for approximate solvers)
+- `ρ★_R::Real = NaN`: optional pre-computed star-region density (for approximate solvers)
 
 # Returns
 - `(left_wave, right_wave)`: a pair of [`NonlinearWaveStructure`](@ref) objects
@@ -306,7 +308,9 @@ function calc_wave_structure_from_p★_and_u★(
     W_R::PrimitiveState,
     eos::PerfectGasEOS,
     p★ ::Real,
-    u★ ::Real
+    u★ ::Real,
+    ρ★_L = NaN,
+    ρ★_R = NaN
 )
     # extract primitive variables
     ρ_L, u_L, p_L = W_L.ρ, W_L.u, W_L.p
@@ -324,15 +328,19 @@ function calc_wave_structure_from_p★_and_u★(
         wave_type_L = Shock
         # shock velocity:
         S_L = u_L - a_L * √((γ+1)/(2γ) * (p★ / p_L) + (γ-1)/(2γ))
-        ρ★_L = ρ_L * (p★/p_L + (γ-1)/(γ+1)) / 
-               (((γ-1)/(γ+1)) * (p★/p_L) + 1)
+        if isnan(ρ★_L)
+            ρ★_L = ρ_L * (p★/p_L + (γ-1)/(γ+1)) / 
+                         (((γ-1)/(γ+1)) * (p★/p_L) + 1)
+        end
         head_L = tail_L = NaN
     else # left rarefaction
         wave_type_L = Rarefaction
         # compute a★_L using generalized Riemann invariants
         a★_L = a_L + (γ-1)/2 * (u_L - u★)
         # compute ρ★_L by definition of speed of sound
-        ρ★_L = γ * p★ / (a★_L^2)
+        if isnan(ρ★_L)
+            ρ★_L = γ * p★ / (a★_L^2)
+        end
         # [reference] RmSv-4.4
         head_L = u_L - a_L
         tail_L = u★ - a★_L
@@ -343,13 +351,17 @@ function calc_wave_structure_from_p★_and_u★(
         wave_type_R = Shock
         # shock velocity:
         S_R = u_R + a_R * √((γ+1)/(2γ) * (p★ / p_R) + (γ-1)/(2γ))
-        ρ★_R = ρ_R * (p★/p_R + (γ-1)/(γ+1)) / 
+        if isnan(ρ★_R)
+            ρ★_R = ρ_R * (p★/p_R + (γ-1)/(γ+1)) / 
                (((γ-1)/(γ+1)) * (p★/p_R) + 1)
+        end
         head_R = tail_R = NaN
     else # right rarefaction
         wave_type_R = Rarefaction
         a★_R = a_R - (γ-1)/2 * (u_R - u★)
-        ρ★_R = γ * p★ / (a★_R^2)
+        if isnan(ρ★_R)
+            ρ★_R = γ * p★ / (a★_R^2)
+        end
         head_R = u_R + a_R
         tail_R = u★ + a★_R
         S_R = NaN
