@@ -57,8 +57,8 @@ export solve_Riemann_problem_exact, sample_exact_solution
 # first-order Godunov method
 include("solvers/Godunov.jl")
 export GodunovSolver
-# approximate Riemann solvers: PVRS
+# approximate Riemann solvers: PVRS, TRRS, TSRS
 include("solvers/approximate.jl")
-export PVRS, TRRS
+export PVRS, TRRS, TSRS
 
 end # module Riemann1D

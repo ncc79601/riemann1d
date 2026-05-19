@@ -60,7 +60,7 @@ struct TRRS <: AbstractRiemannSolver end
 """
     compute_numerical_flux(solver::TRRS, W_L, W_R, eos)
 
-TRRS flux: # TODO
+TRRS flux: assumes both waves are rarefactions and uses the exact solution formula for the star region. Exact when both waves are rarefactions, but not accurate if shocks are present. Fast.
 
 # Reference:
 RmSv-9.4
@@ -112,5 +112,76 @@ function compute_numerical_flux(
         eos, W_L, W_R, p★, u★,
         wave_structure_L, wave_structure_R,
     )
-    return sample_exact_solution(0.0, 1.0, sol) |> w -> Flux(w, eos)
+    return sample_exact_solution(0.0, 1.0, sol) |> (W -> Flux(W, eos))
+end
+
+
+"""
+    TSRS <: AbstractRiemannSolver
+
+Two-shock Riemann solver (TSRS).
+"""
+struct TSRS <: AbstractRiemannSolver end
+
+
+"""
+    compute_numerical_flux(solver::TSRS, W_L, W_R, eos)
+
+TSRS flux: assumes both waves are shock waves and uses the exact solution formula for the star region. Not exact (even for shock waves because it requires an initial guess for ``p_0``), but more accurate than PVRS if shocks are present. Fast.
+
+# Reference:
+RmSv-9.4
+"""
+function compute_numerical_flux(
+    solver::TSRS,
+    W_L::PrimitiveState,
+    W_R::PrimitiveState,
+    eos::PerfectGasEOS,
+)
+    p₀ = max(0, guess_p★(W_L, W_R, eos, method=PV))
+    
+    γ = eos.γ
+    ρ_L, u_L, p_L = W_L.ρ, W_L.u, W_L.p
+    ρ_R, u_R, p_R = W_R.ρ, W_R.u, W_R.p
+
+    A_L = 2 / ((γ+1) * ρ_L)
+    A_R = 2 / ((γ+1) * ρ_R)
+    B_L = (γ-1)/(γ+1) * p_L
+    B_R = (γ-1)/(γ+1) * p_R
+    g_L(p) = √(A_L / (p + B_L))
+    g_R(p) = √(A_R / (p + B_R))
+
+    p★ = (g_L(p₀)*p_L + g_R(p₀)*p_R - (u_R - u_L)) / (g_L(p₀) + g_R(p₀))
+    u★ = 0.5 * (u_L + u_R) + 0.5 * ((p★ - p_R) * g_L(p₀) - (p★ - p_L) * g_R(p₀))
+    
+    ρ★_L = ρ_L * (p★/p_L + (γ-1)/(γ+1)) / ((γ-1)/(γ+1) * p★/p_L + 1)
+    ρ★_R = ρ_R * (p★/p_R + (γ-1)/(γ+1)) / ((γ-1)/(γ+1) * p★/p_R + 1)
+
+    # same as src/solvers/exact.jl
+    a_L = sound_speed(W_L, eos)
+    a_R = sound_speed(W_R, eos)
+    S_L = u_L - a_L * √((γ+1)/(2γ) * (p★/p_L) + (γ-1)/(2γ))
+    S_R = u_R + a_R * √((γ+1)/(2γ) * (p★/p_R) + (γ-1)/(2γ))
+
+    # utilize tools from src/solvers/exact.jl to sample the solution at x/t = 0
+    wave_structure_L = NonlinearWaveStructure(
+        Shock,
+        ρ★_L,
+        S_L,
+        NaN,
+        NaN
+    )
+    wave_structure_R = NonlinearWaveStructure(
+        Shock,
+        ρ★_R,
+        S_R,
+        NaN,
+        NaN
+    )
+    sol = ExactRiemannSolution(
+        eos, W_L, W_R, p★, u★,
+        wave_structure_L, wave_structure_R,
+    )
+
+    return sample_exact_solution(0.0, 1.0, sol) |> (W -> Flux(W, eos))
 end

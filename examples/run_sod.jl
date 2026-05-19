@@ -10,7 +10,8 @@ W_L  = PrimitiveState(ρ=1.0, u=0.0, p=1.0)
 W_R  = PrimitiveState(ρ=0.125, u=0.0, p=0.1)
 eos  = PerfectGasEOS(γ=1.4)
 t_end = 0.2
-N = 100
+N = 200
+cfl = 0.9
 grid = UniformGrid1D(-0.5, 0.5, N; ghost_cells=1)
 
 function init_sod(grid, W_L, W_R, eos)
@@ -36,12 +37,13 @@ configs = [
     ("Godunov", GodunovSolver()),
     ("PVRS",    PVRS()),
     ("TRRS",    TRRS()),
+    ("TSRS",    TSRS()),
 ]
 
 results = NamedTuple[]
 for (name, solver) in configs
     U = init_sod(grid, W_L, W_R, eos)
-    config = SolverConfig(solver, 0.9, t_end, 10_000)
+    config = SolverConfig(solver, cfl, t_end, 10_000)
 
     @info "Running $name (N=$N, CFL=$(config.cfl))"
     runtime = @elapsed t_final, n_steps = evolve!(U, grid, eos, config)
