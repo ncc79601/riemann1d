@@ -403,7 +403,7 @@ end
 
 
 """
-    solve_Riemann_problem(W_L, W_R, eos; init_guess_method=TS, max_iter=50, tol=1e-10)
+    solve_Riemann_problem_exact(W_L, W_R, eos; init_guess_method=TS, max_iter=50, tol=1e-10)
 
 Solve the one-dimensional Riemann problem exactly for the compressible
 Euler equations with a perfect gas equation of state:
@@ -429,10 +429,10 @@ Euler equations with a perfect gas equation of state:
 W_L = PrimitiveState(ρ=1.0, u=0.0, p=1.0)
 W_R = PrimitiveState(ρ=0.125, u=0.0, p=0.1)
 eos = PerfectGasEOS(γ=1.4)
-sol = solve_Riemann_problem(W_L, W_R, eos)
+sol = solve_Riemann_problem_exact(W_L, W_R, eos)
 ```
 """
-function solve_Riemann_problem(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS;
+function solve_Riemann_problem_exact(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS;
                               init_guess_method::PressureGuessMethod=TS,
                               max_iter=50, tol=1e-10)
 
@@ -452,14 +452,14 @@ end
 
 
 """
-    sample_solution(x, t, solution::ExactRiemannSolution)
+    sample_exact_solution(x, t, solution::ExactRiemannSolution)
 
 Sample the exact Riemann solution at a given point ``(x, t)``. The solution is self-similar and is solely determined by ``\\xi = x/t``.
 
 # Arguments
 - `x`: spatial coordinate
 - `t`: time coordinate (must be > 0)
-- `solution::ExactRiemannSolution`: the solution of Riemann problem (obtained from [`solve_Riemann_problem`](@ref))
+- `solution::ExactRiemannSolution`: the solution of Riemann problem (obtained from [`solve_Riemann_problem_exact`](@ref))
 
 # Returns
 - `PrimitiveState`: ``(\\rho, u, p)`` at ``(x, t)``
@@ -467,7 +467,7 @@ Sample the exact Riemann solution at a given point ``(x, t)``. The solution is s
 # References
 RmSv-4.5
 """
-function sample_solution(x, t, solution::ExactRiemannSolution)
+function sample_exact_solution(x, t, solution::ExactRiemannSolution)
     t <= 0 && throw(ArgumentError("t must be larger than 0"))
     
     ξ = x / t # self similar variable
@@ -528,15 +528,4 @@ function sample_solution(x, t, solution::ExactRiemannSolution)
     else # right star region
         return PrimitiveState(R.ρ★, u★, p★)
     end
-end
-
-
-function compute_numerical_flux(
-    solver::ExactSolver,
-    W_L::PrimitiveState,
-    W_R::PrimitiveState,
-    eos::PerfectGasEOS,
-)
-    W_star = sample_solution(0.0, 1.0, solve_Riemann_problem(W_L, W_R, eos))
-    return Flux(W_star, eos)
 end

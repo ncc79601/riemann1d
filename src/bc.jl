@@ -56,13 +56,34 @@ end
 
 
 """
-    apply_bc!(U, faces::Vector{BoundaryFace})
+    fill_ghost_cells!(U_padded, faces::Vector{BoundaryFace})
 
-Apply boundary conditions to the state array `U` by filling each ghost cell
-specified in `faces`.
+Fill ghost cells on a padded array `U_padded` by iterating over `faces`. Each face specifies the ghost index, the adjacent interior index, and the
+boundary condition.
 """
-function apply_bc!(U, faces::Vector{BoundaryFace})
+function fill_ghost_cells!(U_padded, faces::Vector{BoundaryFace})
     for face in faces
-        U[face.ghost_idx] = ghost_state(face.bc, U[face.interior_idx])
+        U_padded[face.ghost_idx] = ghost_state(face.bc, U_padded[face.interior_idx])
     end
+end
+
+
+"""
+    apply_bc!(W_arr, W_padded, grid::UniformGrid1D, boundaries::Vector{BoundaryFace})
+
+Copy primitive states from `W_arr` (indexed `1:grid.N`) into the
+pre-allocated padded array `W_padded`, then fill ghost cells by applying
+boundary conditions.
+
+The caller is responsible for pre-allocating `W_padded` with the correct
+`OffsetArray` indexing (physical cells at `1:grid.N`, ghosts at `1-ng:0`
+and `N+1:N+ng`).
+"""
+function apply_bc!(W_arr, W_padded, grid::UniformGrid1D,
+                   boundaries::Vector{BoundaryFace})
+    for i in 1:grid.N
+        W_padded[i] = W_arr[i]
+    end
+    fill_ghost_cells!(W_padded, boundaries)
+    return W_padded
 end

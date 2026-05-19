@@ -20,11 +20,11 @@ When `limiter` is an `AbstractLimiter`, perform MUSCL reconstruction (future).
 - `W_R::Vector{PrimitiveState}`: right state of each interface (length `N+1`)
 """
 function reconstruct_face_values(W_padded, limiter, grid::UniformGrid1D)
-    return _reconstruct_first_order(W_padded, grid)
+    return reconstruct_first_order(W_padded, grid)
 end
 
 
-function _reconstruct_first_order(W_padded, grid::UniformGrid1D)
+function reconstruct_first_order(W_padded, grid::UniformGrid1D)
     N = grid.N
     W_L = Vector{PrimitiveState}(undef, N + 1)
     W_R = Vector{PrimitiveState}(undef, N + 1)
