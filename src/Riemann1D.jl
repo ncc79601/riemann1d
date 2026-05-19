@@ -63,7 +63,7 @@ include("solvers/approximate.jl")
 export PVRS, TRRS, TSRS, AIRS, ANRS
 
 include("solvers/Roe.jl") # TODO
-export RoeEntropyFix, HartenHyman, HartenYee
+export RoeEntropyFix, NoFix, HartenHyman, HartenYee
 export RoeEstimate
 export RoeSolver
 
