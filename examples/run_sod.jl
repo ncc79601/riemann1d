@@ -43,8 +43,8 @@ configs = [
     # ("AIRS",    AIRS()),
     # ("ANRS",    ANRS()),
     ("HLLC",    HLLC(estimate_method=RoeEstimate)),
-    ("Roe-NoFix",         RoeSolver(entropy_fix_method=NoFix, δ=0.1)),
-    ("Roe-HartenYee",     RoeSolver(entropy_fix_method=HartenYee, δ=0.1)),
+    ("Roe-NoFix",         RoeSolver(entropy_fix_method=NoFix)),
+    ("Roe-HartenYee",     RoeSolver(entropy_fix_method=HartenYee, ϵ=0.05)),
     ("Roe-HartenHyman",   RoeSolver(entropy_fix_method=HartenHyman))
 ]
 

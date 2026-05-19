@@ -12,9 +12,9 @@ Roe's approximate Riemann solver.
 """
 struct RoeSolver{T <: Real} <: AbstractRiemannSolver
     entropy_fix_method::RoeEntropyFix
-    δ::T # for Harten-Yee entropy fix
+    ϵ::T # for Harten-Yee entropy fix
 end
-RoeSolver(; entropy_fix_method::RoeEntropyFix = NoFix, δ::Real = 0.1) = RoeSolver{typeof(δ)}(entropy_fix_method, δ)
+RoeSolver(; entropy_fix_method::RoeEntropyFix = NoFix, ϵ::Real = 0.05) = RoeSolver{typeof(ϵ)}(entropy_fix_method, ϵ)
 
 
 """
@@ -87,13 +87,14 @@ function compute_numerical_flux(
     α̃₅ = Δu₁ - (α̃₁ + α̃₂)
 
     # entropy fix
-    method, δ = solver.entropy_fix_method, solver.δ
+    method, ϵ = solver.entropy_fix_method, solver.ϵ
 
     if method == HartenYee
+
+        δ = ϵ * (abs(ũ) + ã)
         Ψ = λ -> abs(λ) >= δ ? abs(λ) : (λ^2 + δ^2)/(2δ)
     
     elseif method == HartenHyman
-
         if ũ >= 0 # only λ̃₁ may need entropy fix
             a_L  = sound_speed(W_L, eos)
             U★_L = U_L + α̃₁ * K̃¹
@@ -120,13 +121,12 @@ function compute_numerical_flux(
                 return F_R - λ̄₅ * α̃₅ * K̃⁵
             end
         end
-
         # no sonic rarefactions
         Ψ = λ -> abs(λ)
 
     else # no entropy fix
         Ψ = λ -> abs(λ)
     end
-    
-    return 0.5 * (F_L + F_R) - 0.5 * (α̃₁ * Ψ(λ̃₁) * K̃¹ + α̃₂ * Ψ(λ̃₂) * K̃² + α̃₅ * Ψ(λ̃₅) * K̃⁵)
+
+    return 0.5 * (F_L + F_R) - 0.5 * (α̃₁ * Ψ(λ̃₁) * K̃¹ + α̃₂ * abs(λ̃₂) * K̃² + α̃₅ * Ψ(λ̃₅) * K̃⁵)
 end
