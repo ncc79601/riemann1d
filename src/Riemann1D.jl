@@ -63,9 +63,12 @@ include("solvers/approximate.jl")
 export PVRS, TRRS, TSRS, AIRS, ANRS
 
 include("solvers/Roe.jl") # TODO
+export RoeEntropyFix, HartenHyman
+export RoeEstimate
+export RoeSolver
 
 include("solvers/HLLC.jl")
-export HLLCEstimateMethod, RoeEstimate
+export HLLCEstimateMethod
 export HLLC
 
 end # module Riemann1D

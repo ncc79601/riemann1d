@@ -252,6 +252,22 @@ function +(F::Flux, U::ConservedState)
 end
 +(U::ConservedState, F::Flux) = F + U
 
+import Base.-
+function -(F1::Flux, F2::Flux)
+    return Flux(
+        F1.mass - F2.mass,
+        F1.momentum - F2.momentum,
+        F1.energy - F2.energy
+    )
+end
+function -(F::Flux, U::ConservedState)
+    return Flux(
+        F.mass - U.ρ,
+        F.momentum - U.ρu,
+        F.energy - U.E
+    )
+end
+
 import Base.*
 function *(c::Real, F::Flux)
     return Flux(
