@@ -32,6 +32,24 @@ function PrimitiveState(W::AbstractVector{<:Real})
     return PrimitiveState(W[1], W[2], W[3])
 end
 
+import Base.+
+function +(W1::PrimitiveState, W2::PrimitiveState)
+    return PrimitiveState(
+        W1.ρ + W2.ρ,
+        W1.u + W2.u,
+        W1.p + W2.p
+    )
+end
+
+import Base.*
+function *(c::Real, W::PrimitiveState)
+    return PrimitiveState(
+        c * W.ρ,
+        c * W.u,
+        c * W.p
+    )
+end
+
 
 """
     ConservedState{T<:Real} <: AbstractState
@@ -62,6 +80,34 @@ ConservedState(; ρ::Real, ρu::Real, E::Real) = ConservedState(ρ, ρu, E) # kw
 function ConservedState(U::AbstractVector{<:Real})
     length(U) == 3 || throw(ArgumentError("state vector U must only contain 3 elements (ρ, ρu, E)"))
     return ConservedState(U[1], U[2], U[3])
+end
+
+
+import Base.+
+function +(U1::ConservedState, U2::ConservedState)
+    return ConservedState(
+        U1.ρ  + U2.ρ,
+        U1.ρu + U2.ρu,
+        U1.E  + U2.E
+    )
+end
+
+import Base.-
+function -(U1::ConservedState, U2::ConservedState)
+    return ConservedState(
+        U1.ρ  - U2.ρ,
+        U1.ρu - U2.ρu,
+        U1.E  - U2.E
+    )
+end
+
+import Base.*
+function *(c::Real, U::ConservedState)
+    return ConservedState(
+        c * U.ρ,
+        c * U.ρu,
+        c * U.E
+    )
 end
 
 
@@ -99,6 +145,21 @@ Speed of sound ``a = \\sqrt{\\gamma p / \\rho}`` for a perfect gas.
 """
 function sound_speed(W::PrimitiveState, eos::PerfectGasEOS)
     return √(eos.γ * W.p / W.ρ)
+end
+
+
+"""
+    total_enthalpy(W::PrimitiveState, eos::PerfectGasEOS) -> Real
+
+Total enthalpy ``H = e + \\frac{p}{\\rho} + \\frac{1}{2} u^2`` for a perfect gas.
+
+```math
+H = e+\\frac{p}{\\rho}+\\frac{1}{2} u^2 = \\frac{p}{(\\gamma-1) \\rho} + \\frac{p}{\\rho} + \\frac{1}{2} u^2 = \\frac{\\gamma p}{(\\gamma-1) \\rho} + \\frac{1}{2} u^2 = \\frac{a^2}{\\gamma-1} + \\frac{1}{2} u^2
+````
+"""
+function total_enthalpy(W::PrimitiveState, eos::PerfectGasEOS)
+    a = sound_speed(W, eos)
+    return a^2 / (eos.γ - 1) + 0.5 * W.u^2
 end
 
 
@@ -172,4 +233,30 @@ function Flux(U::ConservedState, eos::PerfectGasEOS)
     F_momentum = ρu^2 / ρ + p
     F_energy   = u * (E + p)
     return Flux(F_mass, F_momentum, F_energy)
+end
+
+import Base.+
+function +(F1::Flux, F2::Flux)
+    return Flux(
+        F1.mass + F2.mass,
+        F1.momentum + F2.momentum,
+        F1.energy + F2.energy
+    )
+end
+function +(F::Flux, U::ConservedState)
+    return Flux(
+        F.mass + U.ρ,
+        F.momentum + U.ρu,
+        F.energy + U.E
+    )
+end
++(U::ConservedState, F::Flux) = F + U
+
+import Base.*
+function *(c::Real, F::Flux)
+    return Flux(
+        c * F.mass,
+        c * F.momentum,
+        c * F.energy
+    )
 end

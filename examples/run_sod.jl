@@ -37,16 +37,17 @@ x_range = range(x_min, x_max, length=1000)
 # =============================================================================
 configs = [
     ("Godunov", GodunovSolver()),
-    ("PVRS",    PVRS()),
-    ("TRRS",    TRRS()),
-    ("TSRS",    TSRS()),
-    ("AIRS",    AIRS()),
-    ("ANRS",    ANRS()),
+    # ("PVRS",    PVRS()),
+    # ("TRRS",    TRRS()),
+    # ("TSRS",    TSRS()),
+    # ("AIRS",    AIRS()),
+    # ("ANRS",    ANRS()),
+    ("HLLC",    HLLC()),
 ]
 
 results = NamedTuple[]
 for (name, solver) in configs
-    try
+    # try
         U = init_sod(grid, W_L, W_R, eos)
         config = SolverConfig(solver, cfl, t_end, 10_000)
 
@@ -63,9 +64,9 @@ for (name, solver) in configs
             n_steps = n_steps,
             runtime = runtime,
         ))
-    catch e
-        @error "Error running $name: $e"
-    end
+    # catch e
+    #     @error "Error running $name: $e"
+    # end
 end
 
 # =============================================================================
