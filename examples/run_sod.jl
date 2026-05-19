@@ -1,7 +1,8 @@
 using Riemann1D
 using Plots
 using Printf
-gr()
+# gr()
+plotly()
 
 # =============================================================================
 # Common problem setup
@@ -38,6 +39,8 @@ configs = [
     ("PVRS",    PVRS()),
     ("TRRS",    TRRS()),
     ("TSRS",    TSRS()),
+    ("AIRS",    AIRS()),
+    ("ANRS",    ANRS()),
 ]
 
 results = NamedTuple[]
@@ -99,10 +102,12 @@ plt = plot(panels..., layout = (1, 3), size = (1500, 400),
     plot_title = "Sod shock tube — Exact vs Godunov vs PVRS (N=$N)",
     titlefontsize = 10)
 
+gui(plt)
+
 # =============================================================================
 # Output
 # =============================================================================
-outdir = joinpath(@__DIR__, "..", "outputs")
-mkpath(outdir)
-savefig(plt, joinpath(outdir, "sod_compare.png"))
-println("Plot saved to ", joinpath(outdir, "sod_compare.png"))
+# outdir = joinpath(@__DIR__, "..", "outputs")
+# mkpath(outdir)
+# savefig(plt, joinpath(outdir, "sod_compare.png"))
+# println("Plot saved to ", joinpath(outdir, "sod_compare.png"))
