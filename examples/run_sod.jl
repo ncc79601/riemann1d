@@ -7,13 +7,14 @@ plotly()
 # =============================================================================
 # Common problem setup
 # =============================================================================
-W_L  = PrimitiveState(ρ=1.0, u=0.0, p=1.0)
+W_L  = PrimitiveState(ρ=1.0, u=0.75, p=1.0) # sod shock tube modified
 W_R  = PrimitiveState(ρ=0.125, u=0.0, p=0.1)
 eos  = PerfectGasEOS(γ=1.4)
 t_end = 0.2
-N = 200
+N = 100
 cfl = 0.9
-grid = UniformGrid1D(-0.5, 0.5, N; ghost_cells=1)
+x_max, x_min = 0.7, -0.3
+grid = UniformGrid1D(x_min, x_max, N; ghost_cells=1)
 
 function init_sod(grid, W_L, W_R, eos)
     U = Vector{ConservedState}(undef, grid.N)
@@ -29,7 +30,7 @@ end
 # Exact Riemann solution (reference)
 # =============================================================================
 sol = solve_Riemann_problem_exact(W_L, W_R, eos)
-x_range = range(-0.5, 0.5, length=1000)
+x_range = range(x_min, x_max, length=1000)
 
 # =============================================================================
 # Run both solvers
