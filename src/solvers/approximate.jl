@@ -31,7 +31,6 @@ function compute_numerical_flux(
 
     ρ̄    = 0.5 * (ρ_L + ρ_R)
     ā    = 0.5 * (a_L + a_R)
-    ū    = 0.5 * (u_L + u_R)
     p★   = 0.5 * (p_L + p_R) + 0.5 * (u_L - u_R) * ρ̄ * ā
     u★   = 0.5 * (u_L + u_R) + 0.5 * (p_L - p_R) / (ρ̄ * ā)
     ρ★_L = ρ_L + (u_L - u★) * ρ̄ / ā
@@ -189,7 +188,9 @@ function compute_numerical_flux(
     p_max = max(p_L, p_R)
     p_min = min(p_L, p_R)
     Q = p_max / p_min
-    if Q < solver.Q_user
+    p★_PVRS = guess_p★(W_L, W_R, eos, method=PV)
+
+    if Q < solver.Q_user && (p_min < p★_PVRS < p_max)
         return compute_numerical_flux(PVRS(), W_L, W_R, eos)
     else
         return compute_numerical_flux(GodunovSolver(), W_L, W_R, eos)
@@ -231,10 +232,11 @@ function compute_numerical_flux(
     p_max = max(p_L, p_R)
     p_min = min(p_L, p_R)
     Q = p_max / p_min
-    if Q < solver.Q_user
+    p★_PVRS = guess_p★(W_L, W_R, eos, method=PV)
+
+    if Q < solver.Q_user && (p_min < p★_PVRS < p_max)
         return compute_numerical_flux(PVRS(), W_L, W_R, eos)
     else
-        p★_PVRS = guess_p★(W_L, W_R, eos, method=PV)
         if p★_PVRS < p_min
             return compute_numerical_flux(TRRS(), W_L, W_R, eos)
         else
