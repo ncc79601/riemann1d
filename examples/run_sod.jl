@@ -13,8 +13,10 @@ eos  = PerfectGasEOS(γ=1.4)
 t_end = 0.2
 N = 100
 cfl = 0.9
+init_steps = 5
+init_cfl = 0.2
 x_max, x_min = 0.7, -0.3
-grid = UniformGrid1D(x_min, x_max, N; ghost_cells=1)
+grid = UniformGrid1D(x_min, x_max, N; ghost_cells=2) # TODO: ghost cell check
 
 function init_sod(grid, W_L, W_R, eos)
     U = Vector{ConservedState}(undef, grid.N)
@@ -36,23 +38,29 @@ x_range = range(x_min, x_max, length=1000)
 # Run both solvers
 # =============================================================================
 configs = [
-    ("Godunov", GodunovSolver()),
-    # ("PVRS",    PVRS()),
-    # ("TRRS",    TRRS()),
-    # ("TSRS",    TSRS()),
-    # ("AIRS",    AIRS()),
-    # ("ANRS",    ANRS()),
-    ("HLLC",    HLLC(estimate_method=RoeEstimate)),
-    ("Roe-NoFix",         RoeSolver(entropy_fix_method=NoFix)),
-    ("Roe-HartenYee",     RoeSolver(entropy_fix_method=HartenYee, ϵ=0.05)),
-    ("Roe-HartenHyman",   RoeSolver(entropy_fix_method=HartenHyman))
+    ("Godunov", GodunovSolver(), SecondOrderReconstruct(), MinBeeLimiter()),
+    # ("PVRS",    PVRS(), SecondOrderReconstruct(), MinBeeLimiter()),
+    # ("TRRS",    TRRS(), SecondOrderReconstruct(), MinBeeLimiter()),
+    # ("TSRS",    TSRS(), SecondOrderReconstruct(), MinBeeLimiter()),
+    # ("AIRS",    AIRS(), SecondOrderReconstruct(), MinBeeLimiter()),
+    # ("ANRS",    ANRS(), SecondOrderReconstruct(), MinBeeLimiter()),
+    ("HLLC",    HLLC(estimate_method=RoeEstimate), SecondOrderReconstruct(), MinBeeLimiter()),
+    # ("Roe-NoFix",         RoeSolver(entropy_fix_method=NoFix), SecondOrderReconstruct(), MinBeeLimiter()),
+    # ("Roe-HartenYee",     RoeSolver(entropy_fix_method=HartenYee, ϵ=0.05), SecondOrderReconstruct(), MinBeeLimiter()),
+    ("Roe-HartenHyman",   RoeSolver(entropy_fix_method=HartenHyman), SecondOrderReconstruct(), MinBeeLimiter())
 ]
 
 results = NamedTuple[]
-for (name, solver) in configs
+for (name, solver, reconstruction, limiter) in configs
     # try
         U = init_sod(grid, W_L, W_R, eos)
-        config = SolverConfig(solver, cfl, t_end, 10_000)
+        config = SolverConfig(
+            solver, cfl, t_end, 10_000;
+            reconstruction=reconstruction,
+            limiter=limiter,
+            init_steps=init_steps,
+            init_cfl=init_cfl
+        )
 
         @info "Running $name (N=$N, CFL=$(config.cfl))"
         runtime = @elapsed t_final, n_steps = evolve!(U, grid, eos, config)
@@ -108,7 +116,7 @@ for (field, title, ylabel) in fields
 end
 
 plt = plot(panels..., layout = (1, 3), size = (1500, 400),
-    plot_title = "Sod shock tube — Exact vs Godunov vs PVRS (N=$N)",
+    plot_title = "Sod shock tube benchmark (N=$N)",
     titlefontsize = 10)
 
 gui(plt)

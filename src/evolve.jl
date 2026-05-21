@@ -71,17 +71,16 @@ Advance one time step with the forward Euler method.
 - `F` : numerical fluxes at interfaces (length `grid.N+1`, indexed `1:grid.N+1`)
 """
 function forward_euler_step!(U, U_new, F, grid::UniformGrid1D, Δt::Real)
-    N = grid.N
-    c = Δt / grid.Δx
-    for i in 1:N
-        Δmass     = F[i+1].mass     - F[i].mass
-        Δmomentum = F[i+1].momentum - F[i].momentum
-        Δenergy   = F[i+1].energy   - F[i].energy
+    
+    N  = grid.N
+    Δx = grid.Δx
 
+    for i in 1:N
+        # cell i;  F[i] -> interface i-1/2
         U_new[i] = ConservedState(
-            U[i].ρ  - c * Δmass,
-            U[i].ρu - c * Δmomentum,
-            U[i].E  - c * Δenergy,
+            U[i].ρ  + (Δt/Δx) * (F[i].mass     - F[i+1].mass    ),
+            U[i].ρu + (Δt/Δx) * (F[i].momentum - F[i+1].momentum),
+            U[i].E  + (Δt/Δx) * (F[i].energy   - F[i+1].energy  ),
         )
     end
 end
@@ -94,14 +93,25 @@ Fill the flux vector `F` (length `N+1`) with numerical fluxes computed from
 reconstructed face values `W_L_arr` / `W_R_arr`.
 """
 function compute_intercell_fluxes!(
-    F::Vector{Flux},
+    F::AbstractVector{Flux},
+    W_L_arr::AbstractVector{PrimitiveState},
+    W_R_arr::AbstractVector{PrimitiveState},
     solver::AbstractRiemannSolver,
-    W_L_arr::Vector{PrimitiveState},
-    W_R_arr::Vector{PrimitiveState},
+    grid::UniformGrid1D,
     eos::PerfectGasEOS,
 )
-    for i in eachindex(F)
-        F[i] = compute_numerical_flux(solver, W_L_arr[i], W_R_arr[i], eos)
+    N = grid.N
+
+    # F[i] -> interface i-1/2
+    # W_L_arr[i] -> right of interface i-1/2
+    # W_R_Arr[i] -> left of interface i+1/2
+    for i in 1:N+1
+        F[i] = compute_numerical_flux(
+            solver,
+            W_R_arr[i-1], # W_R_arr[i-1] as W_L
+            W_L_arr[i],   # W_L_arr[i] as W_R
+            eos
+    )
     end
 end
 
@@ -119,7 +129,7 @@ It is mutated in-place and contains the final state after the call.
 - `(t_final, n_steps)`: the final time reached and number of time steps taken
 """
 function evolve!(
-    U,
+    U::AbstractVector{ConservedState},
     grid::UniformGrid1D,
     eos::PerfectGasEOS,
     config::SolverConfig,
@@ -128,22 +138,30 @@ function evolve!(
     ng = grid.ghost_cells
 
     # --- pre-allocate work arrays ---
-    U_new          = similar(U)
-    W              = Vector{PrimitiveState}(undef, N)
-    F              = Vector{Flux}(undef, N + 1)
-    W_L            = Vector{PrimitiveState}(undef, N + 1)
-    W_R            = Vector{PrimitiveState}(undef, N + 1)
-    Δ              = Vector{PrimitiveState}(undef, N)
-    boundaries     = make_boundary_faces(grid, TransmissiveBC())
-    W_padded_data  = Vector{PrimitiveState}(undef, N + 2 * ng)
-    W_padded       = OffsetArray(W_padded_data, 1 - ng : N + ng)
+    U_new         = similar(U)
+    W             = Vector{PrimitiveState}(undef, N)
+    F             = Vector{Flux}(undef, N + 1) # F[i] -> interface i-1/2
+    W_L_data      = Vector{PrimitiveState}(undef, N + 2) # right of interface i-1/2
+    W_R_data      = Vector{PrimitiveState}(undef, N + 2) # left of interface i+1/2
+    boundaries    = make_boundary_faces(grid, TransmissiveBC())
+    W_padded_data = Vector{PrimitiveState}(undef, N + 2 * ng)
 
+    # offset arrays
+    W_L = OffsetArray(W_L_data, 0 : N + 1)
+    W_R = OffsetArray(W_R_data, 0 : N + 1)
+    W_padded = OffsetArray(W_padded_data, 1 - ng : N + ng)
+
+    #TODO: config needs to add a ReconstructMethod field
+    reconstruction = config.reconstruction
     limiter = config.limiter
-
+    
     t    = 0.0
     step = 0
 
     while t < config.max_time && step < config.max_steps
+        #TODO debug
+        # println("[timestep $step]")
+
         # 1. conserved → primitive
         for i in 1:N
             W[i] = conserved_to_primitive(U[i], eos)
@@ -152,18 +170,22 @@ function evolve!(
         # 2. apply boundary conditions to ghost cells
         apply_bc!(W, W_padded, grid, boundaries)
 
+        #TODO debug
+        # @warn "applied bc"
+        # @show W_padded
+
         # 3. reconstruct face values
-        if isnothing(limiter)
-            reconstruct!(W_L, W_R, W_padded, grid, FirstOrderReconstruct(), NoLimiter())
-        else
-            reconstruct!(W_L, W_R, W_padded, grid, SecondOrderReconstruct(), limiter)
-        end
+        reconstruct!(W_L, W_R, W_padded, grid, reconstruction, limiter)
+        #TODO debug
+        # @show W
+        # @show W_L
+        # @show W_R
         
         # 4. compute numerical fluxes at all N+1 interfaces
-        compute_intercell_fluxes!(F, config.solver, W_L, W_R, eos)
+        compute_intercell_fluxes!(F, W_L, W_R, config.solver, grid, eos)
 
         # 5. CFL time step (ramp-up: reduced CFL for initial steps)
-        cfl_now = step < config.ramp_steps ? config.ramp_cfl : config.cfl
+        cfl_now = step < config.init_steps ? config.init_cfl : config.cfl
         Δt = compute_Δt(W_padded, eos, grid, cfl_now)
         Δt = min(Δt, config.max_time - t)
 

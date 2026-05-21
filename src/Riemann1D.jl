@@ -12,7 +12,7 @@ using OffsetArrays
 
 # abstract type hierarchy
 include("types.jl")
-export AbstractState, AbstractEOS, AbstractRiemannSolution, AbstractRiemannSolver
+export AbstractState, AbstractEOS, AbstractRiemannSolution, AbstractRiemannSolver, AbstractGrid, AbstractBoundaryCondition, AbstractReconstructMethod, AbstractLimiter
 
 # equations of state
 include("eos.jl")
@@ -36,7 +36,11 @@ include("bc.jl")
 
 # MUSCL (placeholder for now)
 include("reconstruction.jl")
-export FirstOrderReconstruct, SecondOrderReconstruct
+export NoReconstruct, SecondOrderReconstruct
+
+# limiters
+include("limiters.jl")
+export NoLimiter, SwebyLimiter, MinBeeLimiter, SuperBeeLimiter, UltraBeeLimiter, vanLeerLimiter, MCLimiter
 
 # dispatch stubs
 include("solvers/interface.jl")

@@ -1,4 +1,4 @@
-struct FirstOrderReconstruct <: AbstractReconstructMethod end
+struct NoReconstruct <: AbstractReconstructMethod end
 struct SecondOrderReconstruct <: AbstractReconstructMethod end
 
 
@@ -19,13 +19,14 @@ function reconstruct!(
     W_R::AbstractVector{PrimitiveState},
     W_padded,
     grid::UniformGrid1D,
-    method::FirstOrderReconstruct,
+    method::Union{NoReconstruct, Nothing},
     limiter::Union{AbstractLimiter, Nothing},
 )
+    #TODO debug
+    # @warn "No reconstruction"
     N = grid.N
     for i in 0:N+1
-        W_L[i] = W_padded[i - 1]
-        W_R[i] = W_padded[i]
+        W_L[i] = W_R[i] = W_padded[i]
     end
 end
 
@@ -38,10 +39,13 @@ function reconstruct!(
     method::SecondOrderReconstruct,
     limiter::AbstractLimiter,
 )
+    #TODO debug
+    @warn "Second order reconstruction"
     N  = grid.N
     ng = grid.ghost_cells
 
     # extract component arrays
+    # TODO: too slow, needs refactor
     ρ_arr = [W_padded[k].ρ for k in 1-ng:N+ng]
     ρ_arr = OffsetArray(ρ_arr, 1-ng:N+ng)
     
@@ -51,12 +55,18 @@ function reconstruct!(
     p_arr = [W_padded[k].p for k in 1-ng:N+ng]
     p_arr = OffsetArray(p_arr, 1-ng:N+ng)
 
-    # reconstruct components
+    #TODO: debug
+    # @warn "after extracting components"
+    # @show ρ_arr
+    # @show u_arr
+    # @show p_arr
+
+    # reconstruction, including ghost cell 0 and N+1
     for i in 0:N+1
         ρ_L, ρ_R = muscl_scalar(ρ_arr, i, limiter)
         u_L, u_R = muscl_scalar(u_arr, i, limiter)
         p_L, p_R = muscl_scalar(p_arr, i, limiter)
-
+        
         W_L[i] = PrimitiveState(ρ_L, u_L, p_L)
         W_R[i] = PrimitiveState(ρ_R, u_R, p_R)
     end
@@ -69,30 +79,30 @@ end
 Return `abs(Δ)` clamped to a minimum of `eps(typeof(Δ))` so that slope-ratio
 division never divides by zero.
 """
-safe_slope(Δ::Real) = sign(Δ) * max(abs(Δ), eps(typeof(Δ)))
+safe_slope(Δ::Real) = copysign(max(abs(Δ), eps(typeof(Δ))), Δ)
 
 
 """
-    _muscl_scalar(arr, j, limiter)
-
-Return `(w_L, w_R)` — the MUSCL-extrapolated left and right face values of a
-scalar field at the face between cells `j` and `j+1` (1-indexed into the padded
-component array `arr`).
-
-Formula:
-    w_L = arr[j] + ½ φ(r_j) ⋅ (arr[j] - arr[j-1])
-    w_R = arr[j+1] - ½ φ(r_{j+1}) ⋅ (arr[j+2] - arr[j+1])
+    muscl_scalar(arr, j, limiter)
 """
-function muscl_scalar(arr::AbstractVector, j::Int, limiter::AbstractLimiter)
-    Δ_l = arr[j] - arr[j-1]
-    Δ_r = arr[j+1] - arr[j]
-    Δ = Δ_r
+function muscl_scalar(u::AbstractVector, i::Int, limiter::AbstractLimiter)
+    Δ_L = u[i] - u[i-1]
+    Δ_R = u[i+1] - u[i]
+    Δ = Δ_R # right slope as base
 
-    r = Δ_l / safe_slope(Δ_r)
+    #TODO debug
+    # @show (Δ_L, Δ_R, Δ)
+
+    r = Δ_L / safe_slope(Δ_R)
+    #TODO debug
+    # @show r
     Δ̄ = Δ * ξ(r, limiter)
     
-    w_L = arr[j] - 0.5 * Δ̄
-    w_R = arr[j] + 0.5 * Δ̄
+    u_L = u[i] - 0.5 * Δ̄
+    u_R = u[i] + 0.5 * Δ̄
 
-    return w_L, w_R
+    #TODO debug
+    # println("reconstructed #$i: u_L=$u_L, u_R=$u_R")
+
+    return u_L, u_R
 end
