@@ -189,6 +189,10 @@ function total_enthalpy(W::PrimitiveState, eos::PerfectGasEOS)
     return a^2 / (eos.γ - 1) + 0.5 * W.u^2
 end
 
+#TODO: docstring
+internal_energy(U::ConservedState, eos::PerfectGasEOS) = (U.E / U.ρ) - 0.5 * (U.ρu/U.ρ)^2
+internal_energy(W::PrimitiveState, eos::PerfectGasEOS) = W.p / ((eos.γ - 1) * W.ρ)
+
 
 # flux
 """
