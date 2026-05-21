@@ -2,6 +2,7 @@ using Riemann1D
 using Plots
 using Printf
 # gr()
+# use plotly backend for interactive
 plotly()
 
 # =============================================================================
@@ -39,10 +40,10 @@ x_range = range(x_min, x_max, length=1000)
 # =============================================================================
 configs = [
     # ("Godunov", GodunovSolver(), SecondOrderReconstruct(), vanLeerLimiter(), TVDRK2()),
-    ("PVRS",    PVRS(), SecondOrderReconstruct(), vanLeerLimiter(), TVDRK2()),
+    # ("PVRS",    PVRS(), SecondOrderReconstruct(), vanLeerLimiter(), TVDRK2()),
     # ("TRRS",    TRRS(), SecondOrderReconstruct(), vanLeerLimiter(), TVDRK2()),
-    ("TSRS",    TSRS(), SecondOrderReconstruct(), vanLeerLimiter(), TVDRK2()),
-    ("AIRS",    AIRS(), SecondOrderReconstruct(), vanLeerLimiter(), TVDRK2()),
+    # ("TSRS",    TSRS(), SecondOrderReconstruct(), vanLeerLimiter(), TVDRK2()),
+    # ("AIRS",    AIRS(), SecondOrderReconstruct(), vanLeerLimiter(), TVDRK2()),
     # ("ANRS",    ANRS(), SecondOrderReconstruct(), vanLeerLimiter(), TVDRK2()),
     ("HLLC-no-limiter",    HLLC(estimate_method=RoeEstimate), SecondOrderReconstruct(), NoLimiter(), TVDRK2()),
     ("HLLC-minbee",    HLLC(estimate_method=RoeEstimate), SecondOrderReconstruct(), MinBeeLimiter(), TVDRK2()),
@@ -98,22 +99,30 @@ fields = (
 )
 
 panels = Any[]
-for (field, title, ylabel) in fields
+for (i, (field, title, ylabel)) in enumerate(fields)
     exact_vals = getproperty.(exact_at, field)
+
+    exact_label = "Exact"
+
+    legend_pos = :topright
 
     p = plot(x_range, exact_vals;
         title     = title,
         xlabel    = "x",
         ylabel    = ylabel,
-        label     = "Exact",
-        linewidth = 1.5,
-        legend    = :topright,
+        label     = exact_label,
+        linewidth = 1,
+        legend    = legend_pos,
+
+        extra_kwargs = Dict(:series => Dict(:legendgroup => exact_label))
     )
 
     for r in results
+        scatter_label = "$(r.name) ($(r.n_steps) steps)"
+
         scatter!(p, grid.x_centers, getfield(r, field);
-            label = "$(r.name) ($(r.n_steps) steps)",
-            markersize = 2,
+            label = scatter_label,
+            markersize = 1.5,
             markerstrokewidth = 0,
         )
     end
@@ -121,9 +130,14 @@ for (field, title, ylabel) in fields
     push!(panels, p)
 end
 
-plt = plot(panels..., layout = (1, 3), size = (1500, 400),
+# using Measures
+
+plt = plot(
+    panels..., layout = (1, 4), size = (1400, 500),
     plot_title = "Sod shock tube benchmark (N=$N)",
-    titlefontsize = 10)
+    titlefontsize = 10,
+    plot_titlevspan = 0.2, # 20% heigth for title
+)
 
 gui(plt)
 
