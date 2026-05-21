@@ -12,7 +12,7 @@ using OffsetArrays
 
 # abstract type hierarchy
 include("types.jl")
-export AbstractState, AbstractEOS, AbstractRiemannSolution, AbstractRiemannSolver, AbstractGrid, AbstractBoundaryCondition, AbstractReconstructMethod, AbstractLimiter
+export AbstractState, AbstractEOS, AbstractRiemannSolution, AbstractRiemannSolver, AbstractGrid, AbstractBoundaryCondition, AbstractReconstructMethod, AbstractLimiter, AbstractIntegrator
 
 # equations of state
 include("eos.jl")
@@ -49,7 +49,8 @@ export compute_numerical_flux
 # CFL, wave speeds, Forward Euler, intercell flux loop, main time loop
 include("evolve.jl")
 export WaveSpeedMethod, Physical
-export evolve!, evolve_TVDRK2!
+export ExplicitEuler, TVDRK2
+export evolve!
 
 # exact Riemann solver
 include("solvers/exact.jl")

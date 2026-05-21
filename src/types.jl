@@ -66,3 +66,11 @@ abstract type AbstractReconstructMethod end
 Abstract supertype for slope limiter implementations.
 """
 abstract type AbstractLimiter end
+
+
+"""
+    AbstractIntegrator
+
+Abstract supertype for time integrator.
+"""
+abstract type AbstractIntegrator end

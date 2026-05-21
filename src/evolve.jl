@@ -135,7 +135,7 @@ Advance one time step with the forward Euler method.
 - `F` : numerical fluxes at interfaces (length `grid.N+1`, indexed `1:grid.N+1`)
 """
 function forward_euler_step!(U, U_new, F, grid::UniformGrid1D, Δt::Real)
-    
+
     N  = grid.N
     Δx = grid.Δx
 
@@ -147,6 +147,27 @@ function forward_euler_step!(U, U_new, F, grid::UniformGrid1D, Δt::Real)
             U[i].E  + (Δt/Δx) * (F[i].energy   - F[i+1].energy  ),
         )
     end
+end
+
+
+#TODO: docstring
+# types of integrator
+struct ExplicitEuler <: AbstractIntegrator end
+# TVD-RK2 / SSP-RK2
+struct TVDRK2 <: AbstractIntegrator end
+
+
+#TODO: docstring
+# unified evolve function which handles multiple dispatch
+function evolve!(
+    U::     AbstractVector{ConservedState},
+    grid::  UniformGrid1D,
+    eos::   PerfectGasEOS,
+    config::SolverConfig,
+)
+    # TODO
+    integrator = config.integrator
+    evolve!(U, grid, eos, config, integrator)
 end
 
 
@@ -162,11 +183,13 @@ It is mutated in-place and contains the final state after the call.
 # Returns
 - `(t_final, n_steps)`: the final time reached and number of time steps taken
 """
+# Explicit Euler
 function evolve!(
     U::AbstractVector{ConservedState},
     grid::UniformGrid1D,
     eos::PerfectGasEOS,
     config::SolverConfig,
+    integrator::ExplicitEuler
 )
     N  = grid.N
     ng = grid.ghost_cells
@@ -214,11 +237,12 @@ end
 
 
 # TODO: docstring, and refactor
-function evolve_TVDRK2!(
+function evolve!(
     U::AbstractVector{ConservedState},
     grid::UniformGrid1D,
     eos::PerfectGasEOS,
     config::SolverConfig,
+    integrator::TVDRK2
 )
     N  = grid.N
     ng = grid.ghost_cells
