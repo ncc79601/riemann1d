@@ -57,8 +57,9 @@ configs = [
 ]
 
 results = NamedTuple[]
+
 for (name, solver, reconstruction, limiter, integrator) in configs
-    try
+    # try
         U = init_sod(grid, W_L, W_R, eos)
         config = SolverConfig(
             solver, cfl, t_end, 10_000;
@@ -76,15 +77,16 @@ for (name, solver, reconstruction, limiter, integrator) in configs
         W_final = [conserved_to_primitive(U[i], eos) for i in 1:grid.N]
         push!(results, (;
             name    = name,
-            ρ       = [w.ρ for w in W_final],
-            u       = [w.u for w in W_final],
-            p       = [w.p for w in W_final],
+            ρ       = [W.ρ for W in W_final],
+            u       = [W.u for W in W_final],
+            p       = [W.p for W in W_final],
+            e       = [internal_energy(W, eos) for W in W_final], 
             n_steps = n_steps,
             runtime = runtime,
         ))
-    catch e
-        @error "Error running $name: $e"
-    end
+    # catch e
+    #     @error "Error running $name: $e"
+    # end
 end
 
 # =============================================================================
@@ -93,18 +95,24 @@ end
 exact_at = [sample_exact_solution(x, t_end, sol) for x in x_range]
 
 fields = (
-    (:ρ, "Density",  "ρ"),
-    (:u, "Velocity", "u"),
-    (:p, "Pressure", "p"),
+    (:ρ, "density",  "ρ"),
+    (:u, "velocity", "u"),
+    (:p, "pressure", "p"),
+    (:e, "Internal energy", "e")
 )
 
 panels = Any[]
 for (i, (field, title, ylabel)) in enumerate(fields)
-    exact_vals = getproperty.(exact_at, field)
+    if field == :e
+        # calculate internal energy
+        exact_vals = [internal_energy(W, eos) for W in exact_at]
+    else
+        exact_vals = getproperty.(exact_at, field)
+    end
 
     exact_label = "Exact"
 
-    legend_pos = :topright
+    legend_pos = :right
 
     p = plot(x_range, exact_vals;
         title     = title,
@@ -113,12 +121,10 @@ for (i, (field, title, ylabel)) in enumerate(fields)
         label     = exact_label,
         linewidth = 1,
         legend    = legend_pos,
-
-        extra_kwargs = Dict(:series => Dict(:legendgroup => exact_label))
     )
 
     for r in results
-        scatter_label = "$(r.name) ($(r.n_steps) steps)"
+        scatter_label = "$(r.name)"
 
         scatter!(p, grid.x_centers, getfield(r, field);
             label = scatter_label,
@@ -132,11 +138,20 @@ end
 
 # using Measures
 
+# insert!(panels, 3, plot())
+
+l = @layout [
+    a{0.4w,0.45h} b{0.4w} _
+    _             _       _
+    c{0.45h}      d       _ 
+]
+
 plt = plot(
-    panels..., layout = (1, 4), size = (1400, 500),
+    panels..., layout = l, size = (800, 600),
     plot_title = "Sod shock tube benchmark (N=$N)",
     titlefontsize = 10,
-    plot_titlevspan = 0.2, # 20% heigth for title
+    plot_titlevspan = 0.1, # 20% heigth for title
+    # bottom_margin = 10 * Plots.mm
 )
 
 gui(plt)
