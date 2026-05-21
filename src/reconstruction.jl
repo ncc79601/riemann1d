@@ -9,7 +9,7 @@ Reconstruct left and right face values from a padded cell-averaged array.
 `W_padded` is an `OffsetArray` with physical cells at `1:grid.N` and ghost
 cells at `1-ng:0` (left) and `N+1:N+ng` (right).
 
-`W_L` and `W_R` are pre-allocated vectors of length `N`(#FIXME) receiving the
+`W_L` and `W_R` are pre-allocated vectors of length `N`(#FIXME: docstirng) receiving the
 left and right face values for each interface.
 
 `limiter = nothing` is treated as first-order (no reconstruction).
@@ -22,8 +22,6 @@ function reconstruct!(
     method::Union{NoReconstruct, Nothing},
     limiter::Union{AbstractLimiter, Nothing},
 )
-    #TODO debug
-    # @warn "No reconstruction"
     N = grid.N
     for i in 0:N+1
         W_L[i] = W_R[i] = W_padded[i]
@@ -39,13 +37,10 @@ function reconstruct!(
     method::SecondOrderReconstruct,
     limiter::AbstractLimiter,
 )
-    #TODO debug
-    # @warn "Second order reconstruction"
     N  = grid.N
     ng = grid.ghost_cells
 
     # extract component arrays
-    # TODO: too slow, needs refactor
     ρ_arr = [W_padded[k].ρ for k in 1-ng:N+ng]
     ρ_arr = OffsetArray(ρ_arr, 1-ng:N+ng)
     
@@ -54,12 +49,6 @@ function reconstruct!(
     
     p_arr = [W_padded[k].p for k in 1-ng:N+ng]
     p_arr = OffsetArray(p_arr, 1-ng:N+ng)
-
-    #TODO: debug
-    # @warn "after extracting components"
-    # @show ρ_arr
-    # @show u_arr
-    # @show p_arr
 
     # reconstruction, including ghost cell 0 and N+1
     for i in 0:N+1
@@ -90,19 +79,12 @@ function muscl_scalar(u::AbstractVector, i::Int, limiter::AbstractLimiter)
     Δ_R = u[i+1] - u[i]
     Δ = Δ_R # right slope as base
 
-    #TODO debug
-    # @show (Δ_L, Δ_R, Δ)
-
-    r = Δ_L / safe_slope(Δ_R)
-    #TODO debug
-    # @show r
-    Δ̄ = Δ * ξ(r, limiter)
+    r = Δ_L / safe_slope(Δ_R) # slope ratio
+    Δ̄ = Δ * ξ(r, limiter) # limited slope
     
+    # calculate boundary extrapolated values
     u_L = u[i] - 0.5 * Δ̄
     u_R = u[i] + 0.5 * Δ̄
-
-    #TODO debug
-    # println("reconstructed #$i: u_L=$u_L, u_R=$u_R")
 
     return u_L, u_R
 end

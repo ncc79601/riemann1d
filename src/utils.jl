@@ -3,7 +3,7 @@
 
 Configuration bundle for a finite-volume simulation.
 
-# Fields # TODO: modify
+# Fields # TODO: modify docstring
 - `solver::S`: the Riemann solver used at interfaces
 - `limiter`: slope limiter (`nothing` for first-order)
 - `cfl::T`: CFL number (typically 0.5–0.9)

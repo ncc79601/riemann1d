@@ -89,9 +89,6 @@ function compute_intercell_fluxes!(
 end
 
 
-#TODO: support switching between explicit Euler and TVD-RK2?
-
-
 #TODO: docstring
 function evaluate_fluxes!(
     F         ::AbstractArray{Flux},
@@ -165,7 +162,6 @@ function evolve!(
     eos::   PerfectGasEOS,
     config::SolverConfig,
 )
-    # TODO
     integrator = config.integrator
     evolve!(U, grid, eos, config, integrator)
 end
