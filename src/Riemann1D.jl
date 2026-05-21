@@ -49,7 +49,7 @@ export compute_numerical_flux
 # CFL, wave speeds, Forward Euler, intercell flux loop, main time loop
 include("evolve.jl")
 export WaveSpeedMethod, Physical
-export evolve!
+export evolve!, evolve_TVDRK2!
 
 # exact Riemann solver
 include("solvers/exact.jl")

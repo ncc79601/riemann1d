@@ -184,40 +184,15 @@ function evolve!(
     W_L = OffsetArray(W_L_data, 0 : N + 1)
     W_R = OffsetArray(W_R_data, 0 : N + 1)
     W_padded = OffsetArray(W_padded_data, 1 - ng : N + ng)
-
-    #TODO: config needs to add a ReconstructMethod field
-    reconstruction = config.reconstruction
-    limiter = config.limiter
     
     t    = 0.0
     step = 0
 
     while t < config.max_time && step < config.max_steps
-        #TODO debug
-        # println("[timestep $step]")
-
         # 1. conserved → primitive
-        # for i in 1:N
-        #     W[i] = conserved_to_primitive(U[i], eos)
-        # end
-
         # 2. apply boundary conditions to ghost cells
-        # apply_bc!(W, W_padded, grid, boundaries)
-
-        #TODO debug
-        # @warn "applied bc"
-        # @show W_padded
-
         # 3. reconstruct face values
-        # reconstruct!(W_L, W_R, W_padded, grid, reconstruction, limiter)
-        #TODO debug
-        # @show W
-        # @show W_L
-        # @show W_R
-        
         # 4. compute numerical fluxes at all N+1 interfaces
-        # compute_intercell_fluxes!(F, W_L, W_R, config.solver, grid, eos)
-
         evaluate_fluxes!(F, U, W, W_padded, W_L, W_R, boundaries, grid, eos, config)
 
         # 5. CFL time step (ramp-up: reduced CFL for initial steps)
@@ -230,6 +205,73 @@ function evolve!(
 
         # 7. swap and advance
         U, U_new = U_new, U
+        t += Δt
+        step += 1
+    end
+
+    return t, step
+end
+
+
+# TODO: docstring, and refactor
+function evolve_TVDRK2!(
+    U::AbstractVector{ConservedState},
+    grid::UniformGrid1D,
+    eos::PerfectGasEOS,
+    config::SolverConfig,
+)
+    N  = grid.N
+    ng = grid.ghost_cells
+
+    # --- pre-allocate work arrays ---
+    U_new         = similar(U)
+    U_1           = similar(U) # for stage 1 of RK2
+    W             = Vector{PrimitiveState}(undef, N)
+    F             = Vector{Flux}(undef, N + 1) # F[i] -> interface i-1/2
+    W_L_data      = Vector{PrimitiveState}(undef, N + 2) # right of interface i-1/2
+    W_R_data      = Vector{PrimitiveState}(undef, N + 2) # left of interface i+1/2
+    boundaries    = make_boundary_faces(grid, TransmissiveBC())
+    W_padded_data = Vector{PrimitiveState}(undef, N + 2 * ng)
+
+    # offset arrays
+    W_L = OffsetArray(W_L_data, 0 : N + 1)
+    W_R = OffsetArray(W_R_data, 0 : N + 1)
+    W_padded = OffsetArray(W_padded_data, 1 - ng : N + ng)
+
+    reconstruction = config.reconstruction
+    limiter = config.limiter
+    
+    t    = 0.0
+    step = 0
+
+    while t < config.max_time && step < config.max_steps
+        # -- stage 1: evaluate at tⁿ ---
+        evaluate_fluxes!(F, U, W, W_padded, W_L, W_R, boundaries, grid, eos, config)
+
+        # CFL time step based on U(tⁿ) = Uⁿ
+        cfl_now = step < config.init_steps ? config.init_cfl : config.cfl
+        Δt = compute_Δt(W_padded, eos, grid, cfl_now)
+        Δt = min(Δt, config.max_time - t)
+
+        # U¹ = Uⁿ + (Δt/Δx) * (F_{i-1/2} - F_{i+1/2})
+        forward_euler_step!(U, U_1, F, grid, Δt)
+
+        # --- stage 2: evaluate at tⁿ⁺¹
+        evaluate_fluxes!(F, U_1, W, W_padded, W_L, W_R, boundaries, grid, eos, config)
+        
+        # U² = U¹ + (Δt/Δx) * (F¹_{i-1/2} - F¹_{i+1/2})
+        forward_euler_step!(U_1, U_new, F, grid, Δt)
+
+        # averaging (convex combination)
+        for i in 1:N
+            U[i] = ConservedState(
+                0.5 * (U[i].ρ  + U_new[i].ρ ),
+                0.5 * (U[i].ρu + U_new[i].ρu),
+                0.5 * (U[i].E  + U_new[i].E ),
+            )
+        end
+
+        # advance
         t += Δt
         step += 1
     end

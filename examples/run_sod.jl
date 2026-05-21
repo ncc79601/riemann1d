@@ -14,7 +14,7 @@ t_end = 0.2
 N = 100
 cfl = 0.4
 init_steps = 5
-init_cfl = 0.2
+init_cfl = 0.1
 x_max, x_min = 0.7, -0.3
 grid = UniformGrid1D(x_min, x_max, N; ghost_cells=2) # TODO: ghost cell check
 
@@ -38,16 +38,21 @@ x_range = range(x_min, x_max, length=1000)
 # Run both solvers
 # =============================================================================
 configs = [
-    ("Godunov", GodunovSolver(), SecondOrderReconstruct(), vanLeerLimiter()),
+    # ("Godunov", GodunovSolver(), SecondOrderReconstruct(), vanLeerLimiter()),
     # ("PVRS",    PVRS(), SecondOrderReconstruct(), vanLeerLimiter()),
     # ("TRRS",    TRRS(), SecondOrderReconstruct(), vanLeerLimiter()),
     # ("TSRS",    TSRS(), SecondOrderReconstruct(), vanLeerLimiter()),
     # ("AIRS",    AIRS(), SecondOrderReconstruct(), vanLeerLimiter()),
     # ("ANRS",    ANRS(), SecondOrderReconstruct(), vanLeerLimiter()),
-    ("HLLC",    HLLC(estimate_method=RoeEstimate), SecondOrderReconstruct(), vanLeerLimiter()),
+    ("HLLC-no-limiter",    HLLC(estimate_method=RoeEstimate), SecondOrderReconstruct(), NoLimiter()),
+    ("HLLC-minbee",    HLLC(estimate_method=RoeEstimate), SecondOrderReconstruct(), MinBeeLimiter()),
+    ("HLLC-vanleer",    HLLC(estimate_method=RoeEstimate), SecondOrderReconstruct(), vanLeerLimiter()),
+    ("HLLC-mc",    HLLC(estimate_method=RoeEstimate), SecondOrderReconstruct(), MCLimiter()),
+    ("HLLC-superbee",    HLLC(estimate_method=RoeEstimate), SecondOrderReconstruct(), SuperBeeLimiter()),
+    ("HLLC-ultrabee",    HLLC(estimate_method=RoeEstimate), SecondOrderReconstruct(), UltraBeeLimiter()),
     # ("Roe-NoFix",         RoeSolver(entropy_fix_method=NoFix), SecondOrderReconstruct(), vanLeerLimiter()),
     # ("Roe-HartenYee",     RoeSolver(entropy_fix_method=HartenYee, ϵ=0.05), SecondOrderReconstruct(), vanLeerLimiter()),
-    ("Roe-HartenHyman",   RoeSolver(entropy_fix_method=HartenHyman), SecondOrderReconstruct(), vanLeerLimiter())
+    # ("Roe-HartenHyman",   RoeSolver(entropy_fix_method=HartenHyman), SecondOrderReconstruct(), vanLeerLimiter())
 ]
 
 results = NamedTuple[]
@@ -63,7 +68,8 @@ for (name, solver, reconstruction, limiter) in configs
         )
 
         @info "Running $name (N=$N, CFL=$(config.cfl))"
-        runtime = @elapsed t_final, n_steps = evolve!(U, grid, eos, config)
+        # TODO: test TVD-RK2
+        runtime = @elapsed t_final, n_steps = evolve_TVDRK2!(U, grid, eos, config)
         @info "  $name: t_final=$(round(t_final, digits=6)), steps=$n_steps, time=$(round(runtime, digits=4)) s"
 
         W_final = [conserved_to_primitive(U[i], eos) for i in 1:grid.N]
