@@ -131,9 +131,14 @@ function evolve!(
     U_new          = similar(U)
     W              = Vector{PrimitiveState}(undef, N)
     F              = Vector{Flux}(undef, N + 1)
+    W_L            = Vector{PrimitiveState}(undef, N + 1)
+    W_R            = Vector{PrimitiveState}(undef, N + 1)
+    Δ              = Vector{PrimitiveState}(undef, N)
     boundaries     = make_boundary_faces(grid, TransmissiveBC())
     W_padded_data  = Vector{PrimitiveState}(undef, N + 2 * ng)
     W_padded       = OffsetArray(W_padded_data, 1 - ng : N + ng)
+
+    limiter = config.limiter
 
     t    = 0.0
     step = 0
@@ -148,8 +153,12 @@ function evolve!(
         apply_bc!(W, W_padded, grid, boundaries)
 
         # 3. reconstruct face values
-        W_L, W_R = reconstruct_face_values(W_padded, config.limiter, grid)
-
+        if isnothing(limiter)
+            reconstruct!(W_L, W_R, W_padded, grid, FirstOrderReconstruct(), NoLimiter())
+        else
+            reconstruct!(W_L, W_R, W_padded, grid, SecondOrderReconstruct(), limiter)
+        end
+        
         # 4. compute numerical fluxes at all N+1 interfaces
         compute_intercell_fluxes!(F, config.solver, W_L, W_R, eos)
 

@@ -36,7 +36,7 @@ include("bc.jl")
 
 # MUSCL (placeholder for now)
 include("reconstruction.jl")
-export reconstruct_face_values
+export FirstOrderReconstruct, SecondOrderReconstruct
 
 # dispatch stubs
 include("solvers/interface.jl")
@@ -62,7 +62,7 @@ export GodunovSolver
 include("solvers/approximate.jl")
 export PVRS, TRRS, TSRS, AIRS, ANRS
 
-include("solvers/Roe.jl") # TODO
+include("solvers/Roe.jl")
 export RoeEntropyFix, NoFix, HartenHyman, HartenYee
 export RoeEstimate
 export RoeSolver

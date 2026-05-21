@@ -41,6 +41,15 @@ function +(W1::PrimitiveState, W2::PrimitiveState)
     )
 end
 
+import Base.-
+function -(W1::PrimitiveState, W2::PrimitiveState)
+    return PrimitiveState(
+        W1.ρ - W2.ρ,
+        W1.u - W2.u,
+        W1.p - W2.p
+    )
+end
+
 import Base.*
 function *(c::Real, W::PrimitiveState)
     return PrimitiveState(
@@ -50,6 +59,14 @@ function *(c::Real, W::PrimitiveState)
     )
 end
 
+import Base./
+function /(W1::PrimitiveState, W2::PrimitiveState)
+    return PrimitiveState(
+        W1.ρ / W2.ρ,
+        W1.u / W2.u,
+        W1.p / W2.p,
+    )
+end
 
 """
     ConservedState{T<:Real} <: AbstractState
