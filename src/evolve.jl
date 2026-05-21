@@ -60,33 +60,6 @@ end
 
 
 """
-    forward_euler_step!(U, U_new, F, grid::UniformGrid1D, dt::Real)
-
-Advance one time step with the forward Euler method.
-
-``U_i^{n+1} = U_i^n - \\frac{\\Delta t}{\\Delta x} \\left( F_{i+1/2} - F_{i-1/2} \\right)``
-
-- `U` : conserved state array at time ``n`` (indexed `1:grid.N` for physical cells)
-- `U_new` : conserved state array at time ``n+1`` (same layout as `U`)
-- `F` : numerical fluxes at interfaces (length `grid.N+1`, indexed `1:grid.N+1`)
-"""
-function forward_euler_step!(U, U_new, F, grid::UniformGrid1D, Δt::Real)
-    
-    N  = grid.N
-    Δx = grid.Δx
-
-    for i in 1:N
-        # cell i;  F[i] -> interface i-1/2
-        U_new[i] = ConservedState(
-            U[i].ρ  + (Δt/Δx) * (F[i].mass     - F[i+1].mass    ),
-            U[i].ρu + (Δt/Δx) * (F[i].momentum - F[i+1].momentum),
-            U[i].E  + (Δt/Δx) * (F[i].energy   - F[i+1].energy  ),
-        )
-    end
-end
-
-
-"""
     compute_intercell_fluxes!(F, solver, W_L_arr, W_R_arr, eos)
 
 Fill the flux vector `F` (length `N+1`) with numerical fluxes computed from
@@ -112,6 +85,67 @@ function compute_intercell_fluxes!(
             W_L_arr[i],   # W_L_arr[i] as W_R
             eos
     )
+    end
+end
+
+
+#TODO: support switching between explicit Euler and TVD-RK2?
+
+
+#TODO: docstring
+function evaluate_fluxes!(
+    F         ::AbstractArray{Flux},
+    U         ::AbstractArray{ConservedState},
+    W         ::AbstractArray{PrimitiveState},
+    W_padded  ::AbstractArray{PrimitiveState},
+    W_L       ::AbstractArray{PrimitiveState},
+    W_R       ::AbstractArray{PrimitiveState},
+    boundaries::AbstractArray{BoundaryFace},
+    grid      ::UniformGrid1D,
+    eos       ::PerfectGasEOS,
+    config    ::SolverConfig
+)
+    N  = grid.N
+
+    # 1. conserved → primitive
+    for i in 1:N
+        W[i] = conserved_to_primitive(U[i], eos)
+    end
+
+    # 2. apply boundary conditions to ghost cells
+    apply_bc!(W, W_padded, grid, boundaries)
+
+    # 3. reconstruct face values
+    reconstruct!(W_L, W_R, W_padded, grid, config.reconstruction, config.limiter)
+    
+    # 4. compute numerical fluxes at all N+1 interfaces
+    compute_intercell_fluxes!(F, W_L, W_R, config.solver, grid, eos)
+end
+
+
+"""
+    forward_euler_step!(U, U_new, F, grid::UniformGrid1D, dt::Real)
+
+Advance one time step with the forward Euler method.
+
+``U_i^{n+1} = U_i^n - \\frac{\\Delta t}{\\Delta x} \\left( F_{i+1/2} - F_{i-1/2} \\right)``
+
+- `U` : conserved state array at time ``n`` (indexed `1:grid.N` for physical cells)
+- `U_new` : conserved state array at time ``n+1`` (same layout as `U`)
+- `F` : numerical fluxes at interfaces (length `grid.N+1`, indexed `1:grid.N+1`)
+"""
+function forward_euler_step!(U, U_new, F, grid::UniformGrid1D, Δt::Real)
+    
+    N  = grid.N
+    Δx = grid.Δx
+
+    for i in 1:N
+        # cell i;  F[i] -> interface i-1/2
+        U_new[i] = ConservedState(
+            U[i].ρ  + (Δt/Δx) * (F[i].mass     - F[i+1].mass    ),
+            U[i].ρu + (Δt/Δx) * (F[i].momentum - F[i+1].momentum),
+            U[i].E  + (Δt/Δx) * (F[i].energy   - F[i+1].energy  ),
+        )
     end
 end
 
@@ -163,26 +197,28 @@ function evolve!(
         # println("[timestep $step]")
 
         # 1. conserved → primitive
-        for i in 1:N
-            W[i] = conserved_to_primitive(U[i], eos)
-        end
+        # for i in 1:N
+        #     W[i] = conserved_to_primitive(U[i], eos)
+        # end
 
         # 2. apply boundary conditions to ghost cells
-        apply_bc!(W, W_padded, grid, boundaries)
+        # apply_bc!(W, W_padded, grid, boundaries)
 
         #TODO debug
         # @warn "applied bc"
         # @show W_padded
 
         # 3. reconstruct face values
-        reconstruct!(W_L, W_R, W_padded, grid, reconstruction, limiter)
+        # reconstruct!(W_L, W_R, W_padded, grid, reconstruction, limiter)
         #TODO debug
         # @show W
         # @show W_L
         # @show W_R
         
         # 4. compute numerical fluxes at all N+1 interfaces
-        compute_intercell_fluxes!(F, W_L, W_R, config.solver, grid, eos)
+        # compute_intercell_fluxes!(F, W_L, W_R, config.solver, grid, eos)
+
+        evaluate_fluxes!(F, U, W, W_padded, W_L, W_R, boundaries, grid, eos, config)
 
         # 5. CFL time step (ramp-up: reduced CFL for initial steps)
         cfl_now = step < config.init_steps ? config.init_cfl : config.cfl

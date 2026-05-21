@@ -33,6 +33,7 @@ function SolverConfig(
     cfl::T,
     max_time::T,
     max_steps::Integer;
+    # kwargs
     reconstruction::R=SecondOrderReconstruct(),
     limiter::L=SuperBeeLimiter(),
     init_steps::Integer=5,

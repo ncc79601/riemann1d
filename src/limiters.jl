@@ -6,7 +6,7 @@ struct SwebyLimiter{T <: Real} <: AbstractLimiter
     β::T
 end
 
-SwebyLimiter(; β::Real = 0.2) = SwebyLimiter{typeof(β)}(β)
+SwebyLimiter(; β::Real = 2.0) = SwebyLimiter{typeof(β)}(β)
 
 # MinBee and SuperBee as special cases of Sweby limiter
 MinBeeLimiter() = SwebyLimiter(β = 1.0)

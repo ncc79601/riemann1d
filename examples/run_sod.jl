@@ -12,7 +12,7 @@ W_R  = PrimitiveState(ρ=0.125, u=0.0, p=0.1)
 eos  = PerfectGasEOS(γ=1.4)
 t_end = 0.2
 N = 100
-cfl = 0.9
+cfl = 0.4
 init_steps = 5
 init_cfl = 0.2
 x_max, x_min = 0.7, -0.3
@@ -38,16 +38,16 @@ x_range = range(x_min, x_max, length=1000)
 # Run both solvers
 # =============================================================================
 configs = [
-    ("Godunov", GodunovSolver(), SecondOrderReconstruct(), MinBeeLimiter()),
-    # ("PVRS",    PVRS(), SecondOrderReconstruct(), MinBeeLimiter()),
-    # ("TRRS",    TRRS(), SecondOrderReconstruct(), MinBeeLimiter()),
-    # ("TSRS",    TSRS(), SecondOrderReconstruct(), MinBeeLimiter()),
-    # ("AIRS",    AIRS(), SecondOrderReconstruct(), MinBeeLimiter()),
-    # ("ANRS",    ANRS(), SecondOrderReconstruct(), MinBeeLimiter()),
-    ("HLLC",    HLLC(estimate_method=RoeEstimate), SecondOrderReconstruct(), MinBeeLimiter()),
-    # ("Roe-NoFix",         RoeSolver(entropy_fix_method=NoFix), SecondOrderReconstruct(), MinBeeLimiter()),
-    # ("Roe-HartenYee",     RoeSolver(entropy_fix_method=HartenYee, ϵ=0.05), SecondOrderReconstruct(), MinBeeLimiter()),
-    ("Roe-HartenHyman",   RoeSolver(entropy_fix_method=HartenHyman), SecondOrderReconstruct(), MinBeeLimiter())
+    ("Godunov", GodunovSolver(), SecondOrderReconstruct(), vanLeerLimiter()),
+    # ("PVRS",    PVRS(), SecondOrderReconstruct(), vanLeerLimiter()),
+    # ("TRRS",    TRRS(), SecondOrderReconstruct(), vanLeerLimiter()),
+    # ("TSRS",    TSRS(), SecondOrderReconstruct(), vanLeerLimiter()),
+    # ("AIRS",    AIRS(), SecondOrderReconstruct(), vanLeerLimiter()),
+    # ("ANRS",    ANRS(), SecondOrderReconstruct(), vanLeerLimiter()),
+    ("HLLC",    HLLC(estimate_method=RoeEstimate), SecondOrderReconstruct(), vanLeerLimiter()),
+    # ("Roe-NoFix",         RoeSolver(entropy_fix_method=NoFix), SecondOrderReconstruct(), vanLeerLimiter()),
+    # ("Roe-HartenYee",     RoeSolver(entropy_fix_method=HartenYee, ϵ=0.05), SecondOrderReconstruct(), vanLeerLimiter()),
+    ("Roe-HartenHyman",   RoeSolver(entropy_fix_method=HartenHyman), SecondOrderReconstruct(), vanLeerLimiter())
 ]
 
 results = NamedTuple[]
