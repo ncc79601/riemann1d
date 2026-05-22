@@ -24,7 +24,7 @@ struct UniformGrid1D{T} <: AbstractGrid
     x_faces::Vector{T} # cell edge coordinates
 end
 
-function UniformGrid1D(xmin::Real, xmax::Real, N::Int; ghost_cells::Int=NaN)
+function UniformGrid1D(xmin::Real, xmax::Real, N::Int; ghost_cells::Int=1)
     xmin_prom, xmax_prom = promote(xmin, xmax)
     T = typeof(xmin_prom)
     Δx = (xmax_prom - xmin_prom) / T(N)
@@ -32,11 +32,8 @@ function UniformGrid1D(xmin::Real, xmax::Real, N::Int; ghost_cells::Int=NaN)
     x_faces = range(start=xmin_prom, stop=xmax_prom, length=N+1)
 
     # check number for ghost cells
-    if ghost_cells == NaN
-        @warn "creating grid without specifying number of ghost cells, defaulting to 1."
-        ghost_cells = 1
-    elseif ghost_cells < 0
-        throw(ArgumentError("number of ghost cells must be non-negative"))
+    if ghost_cells <= 0
+        throw(ArgumentError("number of ghost cells must be positive"))
     elseif ghost_cells > 2
         @warn "creating grid with more than 2 ghost cells per side is not recommended for 1D problems."
     end

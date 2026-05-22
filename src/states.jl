@@ -189,7 +189,14 @@ function total_enthalpy(W::PrimitiveState, eos::PerfectGasEOS)
     return a^2 / (eos.γ - 1) + 0.5 * W.u^2
 end
 
-#TODO: docstring
+"""
+    internal_energy(state, eos::PerfectGasEOS) -> Real
+
+Specific internal energy ``e``. For a perfect gas:
+
+- Primitive: ``e = p / ((\\gamma - 1)\\,\\rho)``
+- Conserved: ``e = E/\\rho - \\frac{1}{2} u^2``
+"""
 internal_energy(U::ConservedState, eos::PerfectGasEOS) = (U.E / U.ρ) - 0.5 * (U.ρu/U.ρ)^2
 internal_energy(W::PrimitiveState, eos::PerfectGasEOS) = W.p / ((eos.γ - 1) * W.ρ)
 

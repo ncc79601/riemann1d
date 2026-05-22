@@ -1,5 +1,54 @@
-@enum HLLCEstimateMethod begin
-    RoeEstimate
+"""
+    HLLCWaveSpeedMethod
+
+Abstract supertype for HLLC wave speed estimation methods.
+"""
+abstract type HLLCWaveSpeedMethod end
+
+"""
+    RoeEstimate <: HLLCWaveSpeedMethod
+
+Roe-Einfeldt wave-speed estimate: use the Roe-averaged eigenvalues as bounds and take the minimum / maximum with the physical eigenvalues for robustness (better compatibility with rarefactions).
+
+``S_L = \\min(u_L - a_L, \\; \\tilde{u} - \\tilde{a})`` \\
+``S_R = \\max(u_R + a_R, \\; \\tilde{u} + \\tilde{a})``
+"""
+struct RoeEstimate <: HLLCWaveSpeedMethod end
+
+"""
+    DavisEstimate <: HLLCWaveSpeedMethod
+
+Davis wave-speed estimate: take the minimum and maximum of the physical eigenvalues on both sides. Simpler and more diffusive than `RoeEstimate`.
+
+``S_L = \\min(u_L - a_L, \\; u_R - a_R)`` \\
+``S_R = \\max(u_L + a_L, \\; u_R + a_R)``
+"""
+struct DavisEstimate <: HLLCWaveSpeedMethod end
+
+
+"""
+    wave_speed_estimate(estimator, W_L, W_R, eos) -> (S_L, S_R)
+
+Compute ``S_L`` and ``S_R`` for the HLLC solver using the given estimator. Dispatches on the type of `estimator`.
+"""
+function wave_speed_estimate end
+
+function wave_speed_estimate(::RoeEstimate, W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS)
+    u_L, u_R = W_L.u, W_R.u
+    a_L = sound_speed(W_L, eos)
+    a_R = sound_speed(W_R, eos)
+    _, ũ, _, ã = Roe_average(W_L, W_R, eos)
+    S_L = min(u_L - a_L, ũ - ã)
+    S_R = max(u_R + a_R, ũ + ã)
+    return S_L, S_R
+end
+
+function wave_speed_estimate(::DavisEstimate, W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS)
+    a_L = sound_speed(W_L, eos)
+    a_R = sound_speed(W_R, eos)
+    S_L = min(W_L.u - a_L, W_R.u - a_R)
+    S_R = max(W_L.u + a_L, W_R.u + a_R)
+    return S_L, S_R
 end
 
 
@@ -9,35 +58,9 @@ end
 HLLC Solver. Only consider the fastest left and right waves in the non-linear wave structure, along with contact discontinuity in the middle.
 """
 struct HLLC <: AbstractRiemannSolver
-    estimate_method::HLLCEstimateMethod
+    estimate_method::HLLCWaveSpeedMethod
 end
-HLLC(; estimate_method::HLLCEstimateMethod = RoeEstimate) = HLLC(estimate_method)
-
-
-"""
-    compute_HLLC_wave_speeds(W_L, W_R, eos, method)
-
-Compute the wave speeds ``S_L``, ``S_R`` for the HLLC solver using the specified method (default is Roe estimate).
-
-# Returns:
-- `(S_L, S_R)`: left and right wave speeds
-"""
-function compute_HLLC_wave_speeds(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS, method::HLLCEstimateMethod = RoeEstimate)
-    # compute wave speeds S_L, S_R, and S_M using the HLLC solver
-    u_L, u_R = W_L.u, W_R.u
-    a_L = sound_speed(W_L, eos)
-    a_R = sound_speed(W_R, eos)
-
-    if method == RoeEstimate
-        _, ũ, _, ã = Roe_average(W_L, W_R, eos)
-        S_L = min(u_L - a_L, ũ - ã)
-        S_R = max(u_R + a_R, ũ + ã)
-    else
-        throw(ArgumentError("Unsupported HLLC wave speed method: $(method)"))
-    end
-
-    return S_L, S_R
-end
+HLLC(; estimate_method::HLLCWaveSpeedMethod = RoeEstimate()) = HLLC(estimate_method)
 
 
 """
@@ -56,10 +79,10 @@ function compute_numerical_flux(
     ρ_L, u_L, p_L = W_L.ρ, W_L.u, W_L.p
     ρ_R, u_R, p_R = W_R.ρ, W_R.u, W_R.p
 
-    S_L, S_R = compute_HLLC_wave_speeds(W_L, W_R, eos, solver.estimate_method)
-    # compute wave speeds and intermediate states using the HLLC solver
+    S_L, S_R = wave_speed_estimate(solver.estimate_method, W_L, W_R, eos)
     
-    S★ = ((p_R-p_L) + (ρ_L * u_L * (S_L-u_L) - ρ_R * u_R * (S_R-u_R))) / (ρ_L * (S_L-u_L) - ρ_R * (S_R-u_R))
+    S★ = ((p_R-p_L) + (ρ_L * u_L * (S_L-u_L) - ρ_R * u_R * (S_R-u_R))) /
+         (ρ_L * (S_L-u_L) - ρ_R * (S_R-u_R))
 
     # branch select
     if 0 < S_L

@@ -89,7 +89,16 @@ function compute_intercell_fluxes!(
 end
 
 
-#TODO: docstring
+"""
+    evaluate_fluxes!(F, U, W, W_padded, W_L, W_R, boundaries, grid, eos, config)
+
+Perform one complete flux-evaluation pipeline for a finite-volume scheme:
+
+1. Convert conserved ``U`` to primitive ``W``
+2. Apply boundary conditions to ghost cells in `W_padded`
+3. Reconstruct face values ``W_L``, ``W_R``
+4. Compute numerical fluxes ``F`` at all ``N+1`` interfaces
+"""
 function evaluate_fluxes!(
     F         ::AbstractArray{Flux},
     U         ::AbstractArray{ConservedState},
@@ -130,6 +139,10 @@ Advance one time step with the forward Euler method.
 - `U` : conserved state array at time ``n`` (indexed `1:grid.N` for physical cells)
 - `U_new` : conserved state array at time ``n+1`` (same layout as `U`)
 - `F` : numerical fluxes at interfaces (length `grid.N+1`, indexed `1:grid.N+1`)
+
+Note: allocates one `ConservedState` per cell per step. For zero-allocation
+operation, swap to `StructArray{ConservedState}` and write component arrays
+directly.
 """
 function forward_euler_step!(U, U_new, F, grid::UniformGrid1D, Δt::Real)
 
@@ -147,15 +160,64 @@ function forward_euler_step!(U, U_new, F, grid::UniformGrid1D, Δt::Real)
 end
 
 
-#TODO: docstring
-# types of integrator
+"""
+    ExplicitEuler <: AbstractIntegrator
+
+First-order explicit Euler time integrator.
+"""
 struct ExplicitEuler <: AbstractIntegrator end
-# TVD-RK2 / SSP-RK2
+
+"""
+    TVDRK2 <: AbstractIntegrator
+
+Second-order TVD Runge–Kutta (SSP-RK2) time integrator.
+
+``U^{(1)}  = U^n + \\Delta t \\, L(U^n)`` \\
+``U^{(2)}  = U^{(1)} + \\Delta t \\, L(U^{(1)})`` \\
+``U^{n+1}  = \\frac{1}{2} U^n + \\frac{1}{2} U^{(2)}``
+"""
 struct TVDRK2 <: AbstractIntegrator end
 
 
-#TODO: docstring
-# unified evolve function which handles multiple dispatch
+"""
+    allocate_work_arrays(U, grid) -> NamedTuple
+
+Pre-allocate all work arrays needed by one `evolve!` call and return them
+as a `NamedTuple` with keys `U_new`, `W`, `F`, `W_L`, `W_R`, `boundaries`,
+`W_padded`.
+"""
+function allocate_work_arrays(U, grid::UniformGrid1D)
+    N  = grid.N
+    ng = grid.ghost_cells
+
+    U_new         = similar(U)
+    W             = Vector{PrimitiveState}(undef, N)
+    F             = Vector{Flux}(undef, N + 1)
+    W_L_data      = Vector{PrimitiveState}(undef, N + 2)
+    W_R_data      = Vector{PrimitiveState}(undef, N + 2)
+    boundaries    = make_boundary_faces(grid, TransmissiveBC())
+    W_padded_data = Vector{PrimitiveState}(undef, N + 2 * ng)
+
+    W_L = OffsetArray(W_L_data, 0 : N + 1)
+    W_R = OffsetArray(W_R_data, 0 : N + 1)
+    W_padded = OffsetArray(W_padded_data, 1 - ng : N + ng)
+
+    return (; U_new, W, F, W_L, W_R, boundaries, W_padded)
+end
+
+
+"""
+    evolve!(U, grid, eos, config)
+
+Run the finite-volume scheme governed by `config.solver` from ``t = 0`` to
+`config.max_time`. Dispatches to the integrator specified in `config.integrator`.
+
+``U`` is an array of `ConservedState` indexed `1:grid.N` for physical cells.
+It is mutated in-place and contains the final state after the call.
+
+# Returns
+- `(t_final, n_steps)`: the final time reached and number of time steps taken
+"""
 function evolve!(
     U::     AbstractVector{ConservedState},
     grid::  UniformGrid1D,
@@ -163,18 +225,14 @@ function evolve!(
     config::SolverConfig,
 )
     integrator = config.integrator
-    evolve!(U, grid, eos, config, integrator)
+    return evolve!(U, grid, eos, config, integrator)
 end
 
 
 """
-    evolve!(U, grid::UniformGrid1D, eos::PerfectGasEOS, config::SolverConfig)
+    evolve!(U, grid::UniformGrid1D, eos::PerfectGasEOS, config::SolverConfig, integrator::ExplicitEuler)
 
-Run the finite-volume scheme governed by `config.solver` from ``t = 0`` to
-`config.max_time`.
-
-`U` is an array of `ConservedState` indexed `1:grid.N` for physical cells.
-It is mutated in-place and contains the final state after the call.
+Use explicit Euler method as the time integrator and evolve the solution.
 
 # Returns
 - `(t_final, n_steps)`: the final time reached and number of time steps taken
@@ -187,23 +245,8 @@ function evolve!(
     config::SolverConfig,
     integrator::ExplicitEuler
 )
-    N  = grid.N
-    ng = grid.ghost_cells
+    w = allocate_work_arrays(U, grid)
 
-    # --- pre-allocate work arrays ---
-    U_new         = similar(U)
-    W             = Vector{PrimitiveState}(undef, N)
-    F             = Vector{Flux}(undef, N + 1) # F[i] -> interface i-1/2
-    W_L_data      = Vector{PrimitiveState}(undef, N + 2) # right of interface i-1/2
-    W_R_data      = Vector{PrimitiveState}(undef, N + 2) # left of interface i+1/2
-    boundaries    = make_boundary_faces(grid, TransmissiveBC())
-    W_padded_data = Vector{PrimitiveState}(undef, N + 2 * ng)
-
-    # offset arrays
-    W_L = OffsetArray(W_L_data, 0 : N + 1)
-    W_R = OffsetArray(W_R_data, 0 : N + 1)
-    W_padded = OffsetArray(W_padded_data, 1 - ng : N + ng)
-    
     t    = 0.0
     step = 0
 
@@ -212,18 +255,19 @@ function evolve!(
         # 2. apply boundary conditions to ghost cells
         # 3. reconstruct face values
         # 4. compute numerical fluxes at all N+1 interfaces
-        evaluate_fluxes!(F, U, W, W_padded, W_L, W_R, boundaries, grid, eos, config)
+        evaluate_fluxes!(w.F, U, w.W, w.W_padded, w.W_L, w.W_R,
+                         w.boundaries, grid, eos, config)
 
         # 5. CFL time step (ramp-up: reduced CFL for initial steps)
         cfl_now = step < config.init_steps ? config.init_cfl : config.cfl
-        Δt = compute_Δt(W_padded, eos, grid, cfl_now)
+        Δt = compute_Δt(w.W_padded, eos, grid, cfl_now)
         Δt = min(Δt, config.max_time - t)
 
         # 6. forward Euler update
-        forward_euler_step!(U, U_new, F, grid, Δt)
+        forward_euler_step!(U, w.U_new, w.F, grid, Δt)
 
         # 7. swap and advance
-        U, U_new = U_new, U
+        U, w.U_new = w.U_new, U
         t += Δt
         step += 1
     end
@@ -232,7 +276,14 @@ function evolve!(
 end
 
 
-# TODO: docstring, and refactor
+"""
+    evolve!(U, grid::UniformGrid1D, eos::PerfectGasEOS, config::SolverConfig, integrator::TVDRK2)
+
+Use TVD-RK2 as the time integrator and evolve the solution.
+
+# Returns
+- `(t_final, n_steps)`: the final time reached and number of time steps taken
+"""
 function evolve!(
     U::AbstractVector{ConservedState},
     grid::UniformGrid1D,
@@ -240,54 +291,37 @@ function evolve!(
     config::SolverConfig,
     integrator::TVDRK2
 )
-    N  = grid.N
-    ng = grid.ghost_cells
+    w = allocate_work_arrays(U, grid)
+    U_1 = similar(U)  # extra stage-1 buffer for TVDRK2
 
-    # --- pre-allocate work arrays ---
-    U_new         = similar(U)
-    U_1           = similar(U) # for stage 1 of RK2
-    W             = Vector{PrimitiveState}(undef, N)
-    F             = Vector{Flux}(undef, N + 1) # F[i] -> interface i-1/2
-    W_L_data      = Vector{PrimitiveState}(undef, N + 2) # right of interface i-1/2
-    W_R_data      = Vector{PrimitiveState}(undef, N + 2) # left of interface i+1/2
-    boundaries    = make_boundary_faces(grid, TransmissiveBC())
-    W_padded_data = Vector{PrimitiveState}(undef, N + 2 * ng)
-
-    # offset arrays
-    W_L = OffsetArray(W_L_data, 0 : N + 1)
-    W_R = OffsetArray(W_R_data, 0 : N + 1)
-    W_padded = OffsetArray(W_padded_data, 1 - ng : N + ng)
-
-    reconstruction = config.reconstruction
-    limiter = config.limiter
-    
     t    = 0.0
     step = 0
 
     while t < config.max_time && step < config.max_steps
-        # -- stage 1: evaluate at tⁿ ---
-        evaluate_fluxes!(F, U, W, W_padded, W_L, W_R, boundaries, grid, eos, config)
+        # stage 1: evaluate at tⁿ
+        evaluate_fluxes!(w.F, U, w.W, w.W_padded, w.W_L, w.W_R,
+                         w.boundaries, grid, eos, config)
 
-        # CFL time step based on U(tⁿ) = Uⁿ
         cfl_now = step < config.init_steps ? config.init_cfl : config.cfl
-        Δt = compute_Δt(W_padded, eos, grid, cfl_now)
+        Δt = compute_Δt(w.W_padded, eos, grid, cfl_now)
         Δt = min(Δt, config.max_time - t)
 
-        # U¹ = Uⁿ + (Δt/Δx) * (F_{i-1/2} - F_{i+1/2})
-        forward_euler_step!(U, U_1, F, grid, Δt)
+        # U¹ = Uⁿ + Δt L(Uⁿ)
+        forward_euler_step!(U, U_1, w.F, grid, Δt)
 
-        # --- stage 2: evaluate at tⁿ⁺¹
-        evaluate_fluxes!(F, U_1, W, W_padded, W_L, W_R, boundaries, grid, eos, config)
-        
-        # U² = U¹ + (Δt/Δx) * (F¹_{i-1/2} - F¹_{i+1/2})
-        forward_euler_step!(U_1, U_new, F, grid, Δt)
+        # stage 2: evaluate at tⁿ⁺¹
+        evaluate_fluxes!(w.F, U_1, w.W, w.W_padded, w.W_L, w.W_R,
+                         w.boundaries, grid, eos, config)
 
-        # averaging (convex combination)
-        for i in 1:N
+        # U² = U¹ + Δt L(U¹)
+        forward_euler_step!(U_1, w.U_new, w.F, grid, Δt)
+
+        # convex average: Uⁿ⁺¹ = 0.5 * (Uⁿ + U²)
+        for i in 1:grid.N
             U[i] = ConservedState(
-                0.5 * (U[i].ρ  + U_new[i].ρ ),
-                0.5 * (U[i].ρu + U_new[i].ρu),
-                0.5 * (U[i].E  + U_new[i].E ),
+                0.5 * (U[i].ρ  + w.U_new[i].ρ ),
+                0.5 * (U[i].ρu + w.U_new[i].ρu),
+                0.5 * (U[i].E  + w.U_new[i].E ),
             )
         end
 

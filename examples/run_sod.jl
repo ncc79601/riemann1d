@@ -36,11 +36,11 @@ integrator = TVDRK2()
 # integrator = ExplicitEuler()
 
 configs = [
-    ("HLLC-minbee",   HLLC(estimate_method=RoeEstimate), MinBeeLimiter()),
-    ("HLLC-vanleer",  HLLC(estimate_method=RoeEstimate), vanLeerLimiter()),
-    ("HLLC-mc",       HLLC(estimate_method=RoeEstimate), MCLimiter()),
-    ("HLLC-superbee", HLLC(estimate_method=RoeEstimate), SuperBeeLimiter()),
-    ("HLLC-ultrabee", HLLC(estimate_method=RoeEstimate), UltraBeeLimiter()),
+    ("HLLC-minbee",   HLLC(estimate_method=RoeEstimate()), MinBeeLimiter()),
+    ("HLLC-vanleer",  HLLC(estimate_method=RoeEstimate()), vanLeerLimiter()),
+    ("HLLC-mc",       HLLC(estimate_method=RoeEstimate()), MCLimiter()),
+    ("HLLC-superbee", HLLC(estimate_method=RoeEstimate()), SuperBeeLimiter()),
+    ("HLLC-ultrabee", HLLC(estimate_method=RoeEstimate()), UltraBeeLimiter()),
 ]
 
 # configs = [

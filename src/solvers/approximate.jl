@@ -11,10 +11,6 @@ struct PVRS <: AbstractRiemannSolver end
 
 PVRS flux: solve the Riemann problem and evaluate the physical flux at ``x/t = 0``. Evaluate the flux by comparing ``S_L=u_L-a_L``, ``u_*``, ``S_R=u_R+a_R``, and ``0`` (treat all waves as discontinuities).
 
-```math
-
-```
-
 # Reference
 RmSv-9.3
 """
@@ -36,7 +32,7 @@ function compute_numerical_flux(
     ρ★_L = ρ_L + (u_L - u★) * ρ̄ / ā
     ρ★_R = ρ_R + (u★ - u_R) * ρ̄ / ā
 
-    # from src/solvers/exact.jl
+    # utilize tools from src/solvers/exact.jl to sample the solution at x/t = 0
     wave_structure_L, wave_structure_R = calc_wave_structure_from_p★_and_u★(
         W_L, W_R, eos, p★, u★, ρ★_L, ρ★_R
     )
@@ -87,7 +83,7 @@ function compute_numerical_flux(
     ρ★_L = ρ_L * (p★ / p_L) ^ (1/γ)
     ρ★_R = ρ_R * (p★ / p_R) ^ (1/γ)
 
-    # utilize tools from src/solvers/exact.jl to sample the solution at x/t = 0
+    # from src/solvers/exact.jl
     wave_structure_L, wave_structure_R = calc_wave_structure_from_p★_and_u★(
         W_L, W_R, eos, p★, u★, ρ★_L, ρ★_R
     )
@@ -149,7 +145,6 @@ function compute_numerical_flux(
         eos, W_L, W_R, p★, u★,
         wave_structure_L, wave_structure_R,
     )
-
     return sample_exact_solution(0.0, 1.0, sol) |> (W -> Flux(W, eos))
 end
 
@@ -162,7 +157,7 @@ Adaptive iterative Riemann solver (AIRS). Use PVRS if ``Q:=\\frac{p_\\max}{p_\\m
 # Fields:
  - `Q_user::T`: user-specified threshold for switching between PVRS and exact solver.
 """
-struct AIRS{T} <: AbstractRiemannSolver where T <: Real
+struct AIRS{T<:Real} <: AbstractRiemannSolver
     Q_user::T
 end
 function AIRS(; Q_user::Real = 2.0)
@@ -206,7 +201,7 @@ Adaptive non-iterative Riemann solver (ANRS). Calculate ``p_*`` using PVRS. If `
 # Fields:
  - `Q_user::T`: user-specified threshold for switching between PVRS and exact solver.
 """
-struct ANRS{T} <: AbstractRiemannSolver where T <: Real
+struct ANRS{T<:Real} <: AbstractRiemannSolver
     Q_user::T
 end
 function ANRS(; Q_user::Real = 2.0)

@@ -1,17 +1,17 @@
 """
     RiemannProblem
 
-Initial condition for a Riemann problem: two constant states separated by a discontinuity at `x₀`.
+Initial condition for a Riemann problem: two constant states separated by a discontinuity at `x0`.
 
 # Fields
-- `W_L::PrimitiveState`: left state (x < x₀)
-- `W_R::PrimitiveState`: right state (x > x₀)
-- `x₀::Float64`: position of the discontinuity
+- `W_L::PrimitiveState`: left state (x < x0)
+- `W_R::PrimitiveState`: right state (x > x0)
+- `x0::Float64`: position of the discontinuity
 """
 struct RiemannProblem
     W_L ::PrimitiveState
     W_R ::PrimitiveState
-    x₀  ::Real
+    x0  ::Real
     name::String
 end
 
@@ -24,9 +24,9 @@ RiemannProblem(W_L::PrimitiveState, W_R::PrimitiveState) = RiemannProblem(
 RiemannProblem(;
     W_L ::PrimitiveState,
     W_R ::PrimitiveState,
-    x₀  ::Real = 0.0,
+    x0  ::Real = 0.0,
     name::String = "User-defined Riemann Problem"
-) = RiemannProblem(W_L, W_R, x₀, name)
+) = RiemannProblem(W_L, W_R, x0, name)
 
 
 # ---------------------------------------------------------------------------
@@ -40,7 +40,7 @@ Popular Sod's shock tube problem. Consists of a left rarefaction, a contact disc
 SodProblem() = RiemannProblem(
     W_L  = PrimitiveState(ρ=1.0,   u=0.0, p=1.0),
     W_R  = PrimitiveState(ρ=0.125, u=0.0, p=0.1),
-    x₀   = 0.0,
+    x0   = 0.0,
     name = "Sod Problem"
 )
 """
@@ -51,7 +51,7 @@ Modified version of Sod's shock tube problem, good for testing entropy satisfact
 ModifiedSodProblem() = RiemannProblem(
     W_L  = PrimitiveState(ρ=1.0,   u=0.75, p=1.0),
     W_R  = PrimitiveState(ρ=0.125, u=0.0,  p=0.1),
-    x₀   = 0.0,
+    x0   = 0.0,
     name = "Modified Sod Problem"
 )
 """
@@ -62,7 +62,7 @@ ModifiedSodProblem() = RiemannProblem(
 OneTwoThreeProblem() = RiemannProblem(
     W_L  = PrimitiveState(ρ=1.0, u=-2.0, p=0.4),
     W_R  = PrimitiveState(ρ=1.0, u=2.0,  p=0.4),
-    x₀   = 0.0,
+    x0   = 0.0,
     name = "123 Problem"
 )
 """
@@ -73,7 +73,7 @@ Left half of the blast wave problem of Woodward and Colella. Consists of a super
 WoodwardLeftBlastProblem() = RiemannProblem(
     W_L  = PrimitiveState(ρ=1.0, u=0.0, p=1000.0),
     W_R  = PrimitiveState(ρ=1.0, u=0.0, p=0.01),
-    x₀   = 0.0,
+    x0   = 0.0,
     name = "Woodward Left Blast Problem"
 )
 """
@@ -84,7 +84,7 @@ Right half of the blast wave problem of Woodward and Colella. Quite symmetry of 
 WoodwardRightBlastProblem() = RiemannProblem(
     W_L  = PrimitiveState(ρ=1.0, u=0.0, p=0.01),
     W_R  = PrimitiveState(ρ=1.0, u=0.0, p=100.0),
-    x₀   = 0.0,
+    x0   = 0.0,
     name = "Woodward Right Blast Problem"
 )
 """
@@ -95,7 +95,7 @@ Made up of the right and left shocks emerging from the solution to [`WoodwardLef
 ShockCollisionProblem() = RiemannProblem(
     W_L  = PrimitiveState(ρ=5.99924, u=19.5975,  p=460.894),
     W_R  = PrimitiveState(ρ=5.99242, u=-6.19633, p=46.0950),
-    x₀   = 0.0,
+    x0   = 0.0,
     name = "Shock Collision Problem"
 )
 
@@ -106,7 +106,7 @@ ShockCollisionProblem() = RiemannProblem(
 """
     init_simulation(grid, problem::RiemannProblem, eos) -> Vector{ConservedState}
 
-Allocate, fill and return `U[1:grid.N]` using init field defined by `problem`; cells whose center lies to the left of `problem.x₀` get `W_L`, others get `W_R`. Returns pre-allocated array of conserved variables
+Allocate, fill and return `U[1:grid.N]` using init field defined by `problem`; cells whose center lies to the left of `problem.x0` get `W_L`, others get `W_R`. Returns pre-allocated array of conserved variables
 
 # Arguments:
 - `problem::RiemannProblem`: Riemann problem definition
@@ -121,7 +121,7 @@ function init_simulation(problem::RiemannProblem, grid::UniformGrid1D, eos::Perf
     xc = grid.x_centers # cell center coords
 
     for i in 1:grid.N
-        W = xc[i] < problem.x₀ ? problem.W_L : problem.W_R
+        W = xc[i] < problem.x0 ? problem.W_L : problem.W_R
         U[i] = primitive_to_conserved(W, eos)
     end
 
@@ -208,7 +208,7 @@ function extract_fields(
 end
 
 """
-    exact_field(sol::ExactRiemannSolution, x, t, eos, field::Symbol) -> Vector{Float64}
+    extract_field(sol::ExactRiemannSolution, x, t, eos, field::Symbol) -> Vector{Float64}
 
 Extract a single field from the exact solution at `(x, t)`.
 """
