@@ -45,7 +45,7 @@ configs = [
     # ("TSRS",    TSRS(), SecondOrderReconstruct(), vanLeerLimiter(), TVDRK2()),
     # ("AIRS",    AIRS(), SecondOrderReconstruct(), vanLeerLimiter(), TVDRK2()),
     # ("ANRS",    ANRS(), SecondOrderReconstruct(), vanLeerLimiter(), TVDRK2()),
-    ("HLLC-no-limiter",    HLLC(estimate_method=RoeEstimate), SecondOrderReconstruct(), NoLimiter(), TVDRK2()),
+    # ("HLLC-no-limiter",    HLLC(estimate_method=RoeEstimate), SecondOrderReconstruct(), NoLimiter(), TVDRK2()),
     ("HLLC-minbee",    HLLC(estimate_method=RoeEstimate), SecondOrderReconstruct(), MinBeeLimiter(), TVDRK2()),
     ("HLLC-vanleer",    HLLC(estimate_method=RoeEstimate), SecondOrderReconstruct(), vanLeerLimiter(), TVDRK2()),
     ("HLLC-mc",    HLLC(estimate_method=RoeEstimate), SecondOrderReconstruct(), MCLimiter(), TVDRK2()),

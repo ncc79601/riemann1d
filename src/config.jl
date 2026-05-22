@@ -42,6 +42,30 @@ function SolverConfig(
     init_steps    ::Integer=5,
     init_cfl      ::T=convert(T, 0.2)
 ) where {S<:AbstractRiemannSolver, T<:Real, I<:AbstractIntegrator, R<:AbstractReconstructMethod, L<:AbstractLimiter}
+    # solver config checks
+    # reconstruction & limiter
+    if isa(reconstruction, SecondOrderReconstruct) && isa(limiter, NoLimiter)
+        throw(ArgumentError("If second order reconstruction is used, a valid limiter must be specified"))
+    end
+
+    # cfl & integrator
+    if cfl > convert(T, 1.0)
+        throw(ArgumentError("CFL number larger than 1"))
+    end
+
+    # limiter & integrator
+    if isa(reconstruction, SecondOrderReconstruct) && !(isa(limiter, NoLimiter))
+        if isa(integrator, ExplicitEuler)
+            throw(ArgumentError("In semi-discrete schemes, second order reconstruction cannot be used in conjunction with explicit Euler integrator (otherwise unconditioned unstable). Consider using TVD-RK2 integrator instead"))
+        end
+        # check TVD criterion
+        ξ_max = ξ(1000.0, limiter)
+        cfl_TVD = 1 / (1 + 0.5 * ξ_max)
+        if cfl > convert(T, cfl_TVD)
+            @warn "Current CFL number may violate TVD criterion and cause oscillation. Consider using smaller CFL numbers"
+        end
+    end
+
     return SolverConfig{S, R, L, I, T}(
         solver, reconstruction, limiter, integrator,
         cfl, max_time, Int(max_steps), Int(init_steps), init_cfl
