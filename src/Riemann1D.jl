@@ -6,6 +6,7 @@ compressible Euler equations.
 """
 module Riemann1D
 
+# dependencies
 using ForwardDiff
 using StructArrays
 using OffsetArrays
@@ -24,7 +25,7 @@ export PrimitiveState, ConservedState, Flux
 export conserved_to_primitive, primitive_to_conserved, sound_speed, total_enthalpy, internal_energy
 
 # SolverConfig
-include("utils.jl")
+include("config.jl")
 export SolverConfig
 
 # 1D uniform mesh
@@ -62,18 +63,24 @@ export solve_Riemann_problem_exact, sample_exact_solution
 # first-order Godunov method
 include("solvers/Godunov.jl")
 export GodunovSolver
-# approximate Riemann solvers: PVRS, TRRS, TSRS, AIRS, ANRS
 
+# approximate Riemann solvers: PVRS, TRRS, TSRS, AIRS, ANRS
 include("solvers/approximate.jl")
 export PVRS, TRRS, TSRS, AIRS, ANRS
 
+# Roe scheme
 include("solvers/Roe.jl")
 export RoeEntropyFix, NoFix, HartenHyman, HartenYee
 export RoeEstimate
 export RoeSolver
 
+# HLLC scheme
 include("solvers/HLLC.jl")
 export HLLCEstimateMethod
 export HLLC
+
+# helper functions
+include("utils.jl")
+#TODO
 
 end # module Riemann1D
