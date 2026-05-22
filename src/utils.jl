@@ -19,16 +19,65 @@ RiemannProblem(; W_L::PrimitiveState, W_R::PrimitiveState, x₀::Real=0.0) = Rie
 
 
 # ---------------------------------------------------------------------------
-# standard test cases
+# standard test cases from RmSv-4.3.3
 # ---------------------------------------------------------------------------
+"""
+    SodProblem()
+
+Popular Sod's shock tube problem. Consists of a left rarefaction, a contact discontinuity, and a right shock.
+"""
 SodProblem() = RiemannProblem(
-    PrimitiveState(ρ=1.0,   u=0.0,    p=1.0),
-    PrimitiveState(ρ=0.125, u=0.0,    p=0.1),
+    PrimitiveState(ρ=1.0,   u=0.0, p=1.0),
+    PrimitiveState(ρ=0.125, u=0.0, p=0.1),
     0.0
 )
-LaxProblem() = RiemannProblem(
-    PrimitiveState(ρ=0.445, u=0.698,  p=3.528),
-    PrimitiveState(ρ=0.5,   u=0.0,    p=0.571),
+"""
+    ModifiedSodProblem()
+
+Modified version of Sod's shock tube problem, good for testing entropy satisfaction. Similar to [`SodProblem`](@ref), but the left rarefaction is sonic.
+"""
+ModifiedSodProblem() = RiemannProblem(
+    PrimitiveState(ρ=1.0,   u=0.75, p=1.0),
+    PrimitiveState(ρ=0.125, u=0.0,  p=0.1)
+)
+"""
+    OneTwoThreeProblem()
+
+123 Problem. Consists of two symmetric rarefactions, and a zero speed contact discontinuity. Suitable for assessing performance for low-density flows.
+"""
+OneTwoThreeProblem() = RiemannProblem(
+    PrimitiveState(ρ=1.0, u=-2.0, p=0.4),
+    PrimitiveState(ρ=1.0, u=2.0,  p=0.4),
+    0.0
+)
+"""
+    WoodwardLeftBlastProblem()
+
+Left half of the blast wave problem of Woodward and Colella. Consists of a super strong shock.
+"""
+WoodwardLeftBlastProblem() = RiemannProblem(
+    PrimitiveState(ρ=1.0, u=0.0, p=1000.0),
+    PrimitiveState(ρ=1.0, u=0.0, p=0.01),
+    0.0
+)
+"""
+    WoodwardRightBlastProblem()
+
+Right half of the blast wave problem of Woodward and Colella. Quite symmetry of the [`WoodwardLeftBlastProblem`](@ref).
+"""
+WoodwardRightBlastProblem() = RiemannProblem(
+    PrimitiveState(ρ=1.0, u=0.0, p=0.01),
+    PrimitiveState(ρ=1.0, u=0.0, p=100.0),
+    0.0
+)
+"""
+    ShockCollisionProblem()
+
+Made up of the right and left shocks emerging from the solution to [`WoodwardLeftBlastProblem``](@ref) and [`WoodwardRightBlastProblem`](@ref). Represents strong shock collision.
+"""
+ShockCollisionProblem() = RiemannProblem(
+    PrimitiveState(ρ=5.99924, u=19.5975,  p=460.894),
+    PrimitiveState(ρ=5.99242, u=-6.19633, p=46.0950),
     0.0
 )
 

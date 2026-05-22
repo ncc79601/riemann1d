@@ -81,7 +81,7 @@ export HLLC
 
 # helper functions
 include("utils.jl")
-export RiemannProblem, SodProblem, LaxProblem
+export RiemannProblem, SodProblem, ModifiedSodProblem, OneTwoThreeProblem, WoodwardLeftBlastProblem, WoodwardRightBlastProblem, ShockCollisionProblem
 export init_simulation, run_simulation!
 export extract_fields, extract_field
 

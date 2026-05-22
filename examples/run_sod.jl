@@ -3,23 +3,34 @@ using Plots
 plotly()
 
 #%% problem setup
-problem   = SodProblem()
-eos       = PerfectGasEOS(γ=1.4)
+# problem = SodProblem() # t = 0.25
+problem = ModifiedSodProblem() # t = 0.2
+# problem = OneTwoThreeProblem() # t = 0.15
+# problem = WoodwardLeftBlastProblem() # t = 0.012
+# problem = WoodwardRightBlastProblem() # t = 0.035
+# problem = ShockCollisionProblem() # t = 0.035
+
+eos = PerfectGasEOS(γ=1.4)
 
 cfl        = 0.4
 init_cfl   = 0.1
 init_steps = 5
 
-x_min = -0.3
-x_max = 0.7
+x_min = -0.5
+x_max = 0.5
 t_end = 0.2
 
 N    = 200 # grid num
 grid = UniformGrid1D(x_min, x_max, N; ghost_cells=2)
 
 #%% solver configs
+exact_init_guess_method = TS
+
 reconstruction = SecondOrderReconstruct()
+# reconstruction = NoReconstruct()
+
 integrator = TVDRK2()
+# integrator = ExplicitEuler()
 
 configs = [
     ("HLLC-minbee",   HLLC(estimate_method=RoeEstimate), MinBeeLimiter()),
@@ -29,9 +40,20 @@ configs = [
     ("HLLC-ultrabee", HLLC(estimate_method=RoeEstimate), UltraBeeLimiter()),
 ]
 
+configs = [
+    # ("Roe-minbee",   RoeSolver(entropy_fix_method=NoFix, ϵ=0.05), MinBeeLimiter()),
+    # ("Roe-vanleer",  RoeSolver(entropy_fix_method=NoFix, ϵ=0.05), vanLeerLimiter()),
+    # ("Roe-mc",       RoeSolver(entropy_fix_method=NoFix, ϵ=0.05), MCLimiter()),
+    # ("Roe-superbee", RoeSolver(entropy_fix_method=NoFix, ϵ=0.05), SuperBeeLimiter()),
+    # ("Roe-ultrabee", RoeSolver(entropy_fix_method=NoFix, ϵ=0.05), UltraBeeLimiter()),
+]
+
 #%% run exact solution as ground truth
 x_exact_points = range(x_min, x_max, length=1000)
-exact_sol = solve_Riemann_problem_exact(problem.W_L, problem.W_R, eos)
+exact_sol = solve_Riemann_problem_exact(
+    problem.W_L, problem.W_R, eos;
+    init_guess_method=exact_init_guess_method
+)
 
 #%% run all solvers
 results = []
@@ -43,17 +65,21 @@ for (name, solver, limiter) in configs
         reconstruction, limiter, integrator, init_steps, init_cfl
     )
     
-    # initialize
-    U = init_simulation(problem, grid, eos)
+    try
+        # initialize
+        U = init_simulation(problem, grid, eos)
 
-    # run simulation
-    t_final, n_steps, runtime = run_simulation!(U, grid, eos, config)
+        # run simulation
+        t_final, n_steps, runtime = run_simulation!(U, grid, eos, config)
 
-    # save results
-    push!(results, (; name, U))
+        # save results
+        push!(results, (; name, U))
 
-    # print performance metrics
-    @info "$(rpad(name, 18)) steps=$(lpad(n_steps, 5))  runtime=$(round(runtime, digits=4)) s"
+        # print performance metrics
+        @info "$(rpad(name, 18)) steps=$(lpad(n_steps, 5))  runtime=$(round(runtime, digits=4)) s"
+    catch e
+        @error "An error occurred while running $name: $e"
+    end
 end
 
 #%% post processing
