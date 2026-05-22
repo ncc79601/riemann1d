@@ -12,7 +12,7 @@ Enumeration of wave speed estimation methods.
     max_wave_speed(W::PrimitiveState, eos::PerfectGasEOS) -> Real
 
 Compute the maximum absolute eigenvalue for a single cell:
-``\\lambda_\\max = |u| + a`` where ``a = \\sqrt{\\gamma p / \\rho}``.
+``\\lambda_\\text{max} = |u| + a`` where ``a = \\sqrt{\\gamma p / \\rho}``.
 """
 function max_wave_speed(W::PrimitiveState, eos::PerfectGasEOS)
     a = sound_speed(W, eos)
@@ -24,11 +24,11 @@ end
     max_wave_speed(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS,
                    method::WaveSpeedMethod) -> Real
 
-Compute the interface maximum wave speed ``S_\\max`` from left and right states using the
+Compute the interface maximum wave speed ``S_\\text{max}`` from left and right states using the
 specified method.  Used by Riemann solvers that require a two-state estimate.
 
 method:
-- `Physical`: ``S_\\max = \\max(|u_L|+a_L,\\, |u_R|+a_R)``
+- `Physical`: ``S_\\text{max} = \\text{max}(|u_L|+a_L,\\, |u_R|+a_R)``
 """
 function max_wave_speed(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS,
                         method::WaveSpeedMethod)
@@ -45,7 +45,7 @@ end
 
 Compute the maximum time step from the CFL condition.
 
-``\\Delta t = C_\\text{cfl} \\cdot \\frac{\\Delta x}{S_\\max}``
+``\\Delta t = C_\\text{cfl} \\cdot \\frac{\\Delta x}{S_\\text{max}}``
 
 `W_arr` must be indexed such that physical cells are at `1:grid.N`.
 """

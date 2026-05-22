@@ -10,8 +10,8 @@ abstract type HLLCWaveSpeedMethod end
 
 Roe-Einfeldt wave-speed estimate: use the Roe-averaged eigenvalues as bounds and take the minimum / maximum with the physical eigenvalues for robustness (better compatibility with rarefactions).
 
-``S_L = \\min(u_L - a_L, \\; \\tilde{u} - \\tilde{a})`` \\
-``S_R = \\max(u_R + a_R, \\; \\tilde{u} + \\tilde{a})``
+``S_L = \\text{min}(u_L - a_L, \\; \\tilde{u} - \\tilde{a})`` \\
+``S_R = \\text{max}(u_R + a_R, \\; \\tilde{u} + \\tilde{a})``
 """
 struct RoeEstimate <: HLLCWaveSpeedMethod end
 
@@ -20,8 +20,8 @@ struct RoeEstimate <: HLLCWaveSpeedMethod end
 
 Davis wave-speed estimate: take the minimum and maximum of the physical eigenvalues on both sides. Simpler and more diffusive than `RoeEstimate`.
 
-``S_L = \\min(u_L - a_L, \\; u_R - a_R)`` \\
-``S_R = \\max(u_L + a_L, \\; u_R + a_R)``
+``S_L = \\text{min}(u_L - a_L, \\; u_R - a_R)`` \\
+``S_R = \\text{max}(u_L + a_L, \\; u_R + a_R)``
 """
 struct DavisEstimate <: HLLCWaveSpeedMethod end
 

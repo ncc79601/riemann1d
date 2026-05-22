@@ -152,7 +152,7 @@ end
 """
     AIRS <: AbstractRiemannSolver
 
-Adaptive iterative Riemann solver (AIRS). Use PVRS if ``Q:=\\frac{p_\\max}{p_\\min} < Q_\\text{user}``, else use exact solver. Default value for ``Q_\\text{user}`` is 2.
+Adaptive iterative Riemann solver (AIRS). Use PVRS if ``Q:=\\frac{p_\\text{max}}{p_\\text{min}} < Q_\\text{user}``, else use exact solver. Default value for ``Q_\\text{user}`` is 2.
 
 # Fields:
  - `Q_user::T`: user-specified threshold for switching between PVRS and exact solver.
@@ -168,7 +168,7 @@ end
 """
     compute_numerical_flux(solver::AIRS, W_L, W_R, eos)
 
-Adaptive iterative Riemann solver (AIRS) flux: compute the pressure ratio ``Q = p_\\max / p_\\min``. Use PVRS if ``Q < Q_\\text{user}``, else use the exact solver.
+Adaptive iterative Riemann solver (AIRS) flux: compute the pressure ratio ``Q = p_\\text{max} / p_\\text{min}``. Use PVRS if ``Q < Q_\\text{user}``, else use the exact solver.
 
 # Reference:
 RmSv-9.5
@@ -196,7 +196,7 @@ end
 """
     ANRS <: AbstractRiemannSolver
 
-Adaptive non-iterative Riemann solver (ANRS). Calculate ``p_*`` using PVRS. If ``Q:=\\frac{p_\\max}{p_\\min} < Q_\\text{user}``, use PVRS. Else, if ``p_* < p_\\min`` use TRRS, otherwise use TSRS. Default value for ``Q_\\text{user}`` is 2.
+Adaptive non-iterative Riemann solver (ANRS). Calculate ``p_*`` using PVRS. If ``Q:=\\frac{p_\\text{max}}{p_\\text{min}} < Q_\\text{user}``, use PVRS. Else, if ``p_* < p_\\text{min}`` use TRRS, otherwise use TSRS. Default value for ``Q_\\text{user}`` is 2.
 
 # Fields:
  - `Q_user::T`: user-specified threshold for switching between PVRS and exact solver.
@@ -212,7 +212,7 @@ end
 """
     compute_numerical_flux(solver::ANRS, W_L, W_R, eos)
 
-Adaptive non-iterative Riemann solver (ANRS) flux: compute the pressure ratio ``Q = p_\\max / p_\\min``. If ``Q < Q_\\text{user}``, use PVRS. Else, compute the PVRS guess for ``p_*``. If ``p_* < p_\\min``, use TRRS, else use TSRS.
+Adaptive non-iterative Riemann solver (ANRS) flux: compute the pressure ratio ``Q = p_\\text{max} / p_\\text{min}``. If ``Q < Q_\\text{user}``, use PVRS. Else, compute the PVRS guess for ``p_*``. If ``p_* < p_\\text{min}``, use TRRS, else use TSRS.
 
 # Reference:
 RmSv-9.5

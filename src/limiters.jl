@@ -10,7 +10,7 @@ struct NoLimiter <: AbstractLimiter end
 """
     SwebyLimiter{T <: Real} <: AbstractLimiter
 
-Sweby limiter: ``\\xi(r) = \\max(0, \\min(1, \\beta r), \\min(r, \\beta))``.
+Sweby limiter: ``\\xi(r) = \\text{max}(0, \\text{min}(1, \\beta r), \\text{min}(r, \\beta))``.
 """
 struct SwebyLimiter{T <: Real} <: AbstractLimiter
     β::T
@@ -24,7 +24,7 @@ SwebyLimiter(; β::Real = 2.0) = SwebyLimiter{typeof(β)}(β)
 
 Minbee limiter. Returns a [`SwebyLimiter`](@ref) object with `β = 1.0`.
 
-``\\xi(r) = \\max(0, \\min(1, \\beta r), \\min(r, \\beta))``.
+``\\xi(r) = \\text{max}(0, \\text{min}(1, \\beta r), \\text{min}(r, \\beta))``.
 """
 MinBeeLimiter() = SwebyLimiter(β = 1.0)
 
@@ -33,14 +33,14 @@ MinBeeLimiter() = SwebyLimiter(β = 1.0)
 
 Superbee limiter. Returns a [`SwebyLimiter`](@ref) object with `β = 2.0`.
 
-``\\xi(r) = \\max(0, \\min(1, 2r), \\min(r, 2))``.
+``\\xi(r) = \\text{max}(0, \\text{min}(1, 2r), \\text{min}(r, 2))``.
 """
 SuperBeeLimiter() = SwebyLimiter(β = 2.0)
 
 """
     UltraBeeLimiter <: AbstractLimiter
 
-Ultrabee limiter: ``\\xi(r) = \\max(0, \\min(2r, 2))``.
+Ultrabee limiter: ``\\xi(r) = \\text{max}(0, \\text{min}(2r, 2))``.
 """
 struct UltraBeeLimiter <: AbstractLimiter end
 
@@ -54,7 +54,7 @@ struct vanLeerLimiter <: AbstractLimiter end
 """
     MCLimiter <: AbstractLimiter
 
-MC limiter: ``\\xi(r) = \\max(0, \\min(2r, (1 + r) / 2, 2))``.
+MC limiter: ``\\xi(r) = \\text{max}(0, \\text{min}(2r, (1 + r) / 2, 2))``.
 """
 struct MCLimiter <: AbstractLimiter end
 
