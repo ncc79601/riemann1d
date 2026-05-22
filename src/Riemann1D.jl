@@ -81,6 +81,9 @@ export HLLC
 
 # helper functions
 include("utils.jl")
-#TODO
+export RiemannProblem, SodProblem, LaxProblem
+export init_simulation, run_simulation!
+export extract_fields, extract_field, exact_fields, exact_field
+export solution_metrics
 
 end # module Riemann1D
