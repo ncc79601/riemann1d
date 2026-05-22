@@ -76,7 +76,8 @@ export RoeSolver
 
 # HLLC scheme
 include("solvers/HLLC.jl")
-export HLLCEstimateMethod
+export HLLCWaveSpeedMethod, RoeEstimate, DavisEstimate
+export wave_speed_estimate
 export HLLC
 
 # helper functions
