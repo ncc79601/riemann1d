@@ -9,13 +9,24 @@ Initial condition for a Riemann problem: two constant states separated by a disc
 - `x₀::Float64`: position of the discontinuity
 """
 struct RiemannProblem
-    W_L::PrimitiveState
-    W_R::PrimitiveState
-    x₀::Real
+    W_L ::PrimitiveState
+    W_R ::PrimitiveState
+    x₀  ::Real
+    name::String
 end
 
-RiemannProblem(W_L::PrimitiveState, W_R::PrimitiveState) = RiemannProblem(W_L, W_R, 0.0)
-RiemannProblem(; W_L::PrimitiveState, W_R::PrimitiveState, x₀::Real=0.0) = RiemannProblem(W_L, W_R, x₀)
+RiemannProblem(W_L::PrimitiveState, W_R::PrimitiveState) = RiemannProblem(
+    W_L,
+    W_R,
+    0.0,
+    "User-defined Riemann Problem"
+)
+RiemannProblem(;
+    W_L ::PrimitiveState,
+    W_R ::PrimitiveState,
+    x₀  ::Real = 0.0,
+    name::String = "User-defined Riemann Problem"
+) = RiemannProblem(W_L, W_R, x₀, name)
 
 
 # ---------------------------------------------------------------------------
@@ -27,9 +38,10 @@ RiemannProblem(; W_L::PrimitiveState, W_R::PrimitiveState, x₀::Real=0.0) = Rie
 Popular Sod's shock tube problem. Consists of a left rarefaction, a contact discontinuity, and a right shock.
 """
 SodProblem() = RiemannProblem(
-    PrimitiveState(ρ=1.0,   u=0.0, p=1.0),
-    PrimitiveState(ρ=0.125, u=0.0, p=0.1),
-    0.0
+    W_L  = PrimitiveState(ρ=1.0,   u=0.0, p=1.0),
+    W_R  = PrimitiveState(ρ=0.125, u=0.0, p=0.1),
+    x₀   = 0.0,
+    name = "Sod Problem"
 )
 """
     ModifiedSodProblem()
@@ -37,8 +49,10 @@ SodProblem() = RiemannProblem(
 Modified version of Sod's shock tube problem, good for testing entropy satisfaction. Similar to [`SodProblem`](@ref), but the left rarefaction is sonic.
 """
 ModifiedSodProblem() = RiemannProblem(
-    PrimitiveState(ρ=1.0,   u=0.75, p=1.0),
-    PrimitiveState(ρ=0.125, u=0.0,  p=0.1)
+    W_L  = PrimitiveState(ρ=1.0,   u=0.75, p=1.0),
+    W_R  = PrimitiveState(ρ=0.125, u=0.0,  p=0.1),
+    x₀   = 0.0,
+    name = "Modified Sod Problem"
 )
 """
     OneTwoThreeProblem()
@@ -46,9 +60,10 @@ ModifiedSodProblem() = RiemannProblem(
 123 Problem. Consists of two symmetric rarefactions, and a zero speed contact discontinuity. Suitable for assessing performance for low-density flows.
 """
 OneTwoThreeProblem() = RiemannProblem(
-    PrimitiveState(ρ=1.0, u=-2.0, p=0.4),
-    PrimitiveState(ρ=1.0, u=2.0,  p=0.4),
-    0.0
+    W_L  = PrimitiveState(ρ=1.0, u=-2.0, p=0.4),
+    W_R  = PrimitiveState(ρ=1.0, u=2.0,  p=0.4),
+    x₀   = 0.0,
+    name = "123 Problem"
 )
 """
     WoodwardLeftBlastProblem()
@@ -56,9 +71,10 @@ OneTwoThreeProblem() = RiemannProblem(
 Left half of the blast wave problem of Woodward and Colella. Consists of a super strong shock.
 """
 WoodwardLeftBlastProblem() = RiemannProblem(
-    PrimitiveState(ρ=1.0, u=0.0, p=1000.0),
-    PrimitiveState(ρ=1.0, u=0.0, p=0.01),
-    0.0
+    W_L  = PrimitiveState(ρ=1.0, u=0.0, p=1000.0),
+    W_R  = PrimitiveState(ρ=1.0, u=0.0, p=0.01),
+    x₀   = 0.0,
+    name = "Woodward Left Blast Problem"
 )
 """
     WoodwardRightBlastProblem()
@@ -66,9 +82,10 @@ WoodwardLeftBlastProblem() = RiemannProblem(
 Right half of the blast wave problem of Woodward and Colella. Quite symmetry of the [`WoodwardLeftBlastProblem`](@ref).
 """
 WoodwardRightBlastProblem() = RiemannProblem(
-    PrimitiveState(ρ=1.0, u=0.0, p=0.01),
-    PrimitiveState(ρ=1.0, u=0.0, p=100.0),
-    0.0
+    W_L  = PrimitiveState(ρ=1.0, u=0.0, p=0.01),
+    W_R  = PrimitiveState(ρ=1.0, u=0.0, p=100.0),
+    x₀   = 0.0,
+    name = "Woodward Right Blast Problem"
 )
 """
     ShockCollisionProblem()
@@ -76,9 +93,10 @@ WoodwardRightBlastProblem() = RiemannProblem(
 Made up of the right and left shocks emerging from the solution to [`WoodwardLeftBlastProblem``](@ref) and [`WoodwardRightBlastProblem`](@ref). Represents strong shock collision.
 """
 ShockCollisionProblem() = RiemannProblem(
-    PrimitiveState(ρ=5.99924, u=19.5975,  p=460.894),
-    PrimitiveState(ρ=5.99242, u=-6.19633, p=46.0950),
-    0.0
+    W_L  = PrimitiveState(ρ=5.99924, u=19.5975,  p=460.894),
+    W_R  = PrimitiveState(ρ=5.99242, u=-6.19633, p=46.0950),
+    x₀   = 0.0,
+    name = "Shock Collision Problem"
 )
 
 

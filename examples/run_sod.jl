@@ -3,12 +3,16 @@ using Plots
 plotly()
 
 #%% problem setup
-# problem = SodProblem() # t = 0.25
-problem = ModifiedSodProblem() # t = 0.2
-# problem = OneTwoThreeProblem() # t = 0.15
-# problem = WoodwardLeftBlastProblem() # t = 0.012
-# problem = WoodwardRightBlastProblem() # t = 0.035
-# problem = ShockCollisionProblem() # t = 0.035
+problem = ModifiedSodProblem()
+t_end   = 0.2 # simulation time
+
+# pre-defined problems:
+# SodProblem()                # t = 0.25
+# ModifiedSodProblem()        # t = 0.2
+# OneTwoThreeProblem()        # t = 0.15
+# WoodwardLeftBlastProblem()  # t = 0.012
+# WoodwardRightBlastProblem() # t = 0.035
+# ShockCollisionProblem()     # t = 0.035
 
 eos = PerfectGasEOS(γ=1.4)
 
@@ -16,15 +20,14 @@ cfl        = 0.4
 init_cfl   = 0.1
 init_steps = 5
 
-x_min = -0.5
-x_max = 0.5
-t_end = 0.2
+x_min      = -0.5
+x_max      = 0.5
 
-N    = 200 # grid num
-grid = UniformGrid1D(x_min, x_max, N; ghost_cells=2)
+N          = 200 # grid num
+grid       = UniformGrid1D(x_min, x_max, N; ghost_cells=2)
 
 #%% solver configs
-exact_init_guess_method = TS
+exact_init_guess_method = TS # for exact solver
 
 reconstruction = SecondOrderReconstruct()
 # reconstruction = NoReconstruct()
@@ -40,13 +43,13 @@ configs = [
     ("HLLC-ultrabee", HLLC(estimate_method=RoeEstimate), UltraBeeLimiter()),
 ]
 
-configs = [
+# configs = [
     # ("Roe-minbee",   RoeSolver(entropy_fix_method=NoFix, ϵ=0.05), MinBeeLimiter()),
     # ("Roe-vanleer",  RoeSolver(entropy_fix_method=NoFix, ϵ=0.05), vanLeerLimiter()),
     # ("Roe-mc",       RoeSolver(entropy_fix_method=NoFix, ϵ=0.05), MCLimiter()),
     # ("Roe-superbee", RoeSolver(entropy_fix_method=NoFix, ϵ=0.05), SuperBeeLimiter()),
     # ("Roe-ultrabee", RoeSolver(entropy_fix_method=NoFix, ϵ=0.05), UltraBeeLimiter()),
-]
+# ]
 
 #%% run exact solution as ground truth
 x_exact_points = range(x_min, x_max, length=1000)
@@ -123,7 +126,7 @@ l = @layout [
 
 plt = plot(
     panels..., layout = l, size = (800, 600),
-    plot_title = "Sod shock tube benchmark (N=$N)", titlefontsize = 10
+    plot_title = "$(problem.name) Benchmark (N=$N)", titlefontsize = 10
 )
 
 gui()
