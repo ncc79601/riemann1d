@@ -66,6 +66,11 @@ function SolverConfig(
         end
     end
 
+    # cfl & init_cfl
+    if init_cfl > cfl
+        @warn "init_cfl is larger than cfl"
+    end
+
     return SolverConfig{S, R, L, I, T}(
         solver, reconstruction, limiter, integrator,
         cfl, max_time, Int(max_steps), Int(init_steps), init_cfl

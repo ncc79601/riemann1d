@@ -83,7 +83,7 @@ export HLLC
 include("utils.jl")
 export RiemannProblem, SodProblem, LaxProblem
 export init_simulation, run_simulation!
-export extract_fields, extract_field, exact_fields, exact_field
+export extract_fields, extract_field
 export solution_metrics
 
 end # module Riemann1D
