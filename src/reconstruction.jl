@@ -5,12 +5,9 @@ struct SecondOrderReconstruct <: AbstractReconstructMethod end
 """
     reconstruct!(W_L, W_R, W_padded, grid, method, limiter)
 
-Reconstruct left and right face values from a padded cell-averaged array.
-`W_padded` is an `OffsetArray` with physical cells at `1:grid.N` and ghost
-cells at `1-ng:0` (left) and `N+1:N+ng` (right).
+Reconstruct left and right face values from a padded cell-averaged array. `W_padded` is an `OffsetArray` with physical cells at `1:grid.N` and ghost cells at `1-ng:0` (left) and `N+1:N+ng` (right).
 
-`W_L` and `W_R` are pre-allocated vectors of length `N`(#FIXME: docstirng) receiving the
-left and right face values for each interface.
+`W_L` and `W_R` are pre-allocated vectors of length `N+2` (indices `0:N+1`) receiving the left and right face values for each interface.
 
 `limiter = nothing` is treated as first-order (no reconstruction).
 """
@@ -40,8 +37,7 @@ function reconstruct!(
     N  = grid.N
     ng = grid.ghost_cells
 
-    # extract component arrays
-    #TODO: too slow, needs to be refactored
+    # extract component arrays (allocates — revisit when profiling shows bottleneck)
     ρ_arr = [W_padded[k].ρ for k in 1-ng:N+ng]
     ρ_arr = OffsetArray(ρ_arr, 1-ng:N+ng)
     
@@ -64,23 +60,28 @@ end
 
 
 """
-    safe_slope(Δ::Real)
+    safe_Δ(Δ::Real)
 
 Return `abs(Δ)` clamped to a minimum of `eps(typeof(Δ))` so that slope-ratio
 division never divides by zero.
 """
-safe_slope(Δ::Real) = copysign(max(abs(Δ), eps(typeof(Δ))), Δ)
+safe_Δ(Δ::Real) = copysign(max(abs(Δ), eps(typeof(Δ))), Δ)
 
 
 """
-    muscl_reconstruct(arr, j, limiter)
+    muscl_reconstruct(u::AbstractVector{<:Real}, i::Int, limiter::AbstractLimiter) -> (Real, Real)
+
+Perform scalar MUSCL reconstruction for scalar array `u` at `u[i]`.
+
+# Returns
+- `u_L, u_R`: boundary extrapolated values at cell `i`
 """
 function muscl_reconstruct(u::AbstractVector{<:Real}, i::Int, limiter::AbstractLimiter)
     Δ_L = u[i] - u[i-1]
     Δ_R = u[i+1] - u[i]
     Δ = Δ_R # right slope as base
 
-    r = Δ_L / safe_slope(Δ_R) # slope ratio
+    r = Δ_L / safe_Δ(Δ_R) # slope ratio
     Δ̄ = Δ * ξ(r, limiter) # limited slope
     
     # calculate boundary extrapolated values

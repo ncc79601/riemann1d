@@ -1,16 +1,18 @@
 """
-    SolverConfig{S<:AbstractRiemannSolver, T<:Real}
+    SolverConfig{S, R, L, I, T}
 
 Configuration bundle for a finite-volume simulation.
 
-# Fields # TODO: modify docstring
+# Fields
 - `solver::S`: the Riemann solver used at interfaces
-- `limiter`: slope limiter (`nothing` for first-order)
-- `cfl::T`: CFL number (typically 0.5–0.9)
+- `reconstruction::R`: reconstruction method (e.g. `SecondOrderReconstruct()`)
+- `limiter::L`: slope limiter (`NoLimiter()` for first-order)
+- `integrator::I`: time integrator (`ExplicitEuler()` or `TVDRK2()`)
+- `cfl::T`: CFL number (typically 0.4–0.9)
 - `max_time::T`: final simulation time
 - `max_steps::Int`: maximum allowed time steps (safety guard)
-- `init_steps::Int`: number of initial steps using a reduced CFL (default 5)
-- `init_cfl::T`: reduced CFL number used during initial setup (default 0.2)
+- `init_steps::Int`: number of initial steps with reduced CFL (default 5)
+- `init_cfl::T`: reduced CFL number during ramp-up (default 0.2)
 """
 struct SolverConfig{
     S<:AbstractRiemannSolver,

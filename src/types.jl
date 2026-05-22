@@ -55,7 +55,9 @@ abstract type AbstractBoundaryCondition end
 
 
 """
+    AbstractReconstructMethod
 
+Abstract supertype for reconstruction methods.
 """
 abstract type AbstractReconstructMethod end
 
