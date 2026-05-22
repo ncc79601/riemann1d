@@ -41,6 +41,15 @@ function +(W1::PrimitiveState, W2::PrimitiveState)
     )
 end
 
+import Base.-
+function -(W1::PrimitiveState, W2::PrimitiveState)
+    return PrimitiveState(
+        W1.ρ - W2.ρ,
+        W1.u - W2.u,
+        W1.p - W2.p
+    )
+end
+
 import Base.*
 function *(c::Real, W::PrimitiveState)
     return PrimitiveState(
@@ -50,6 +59,14 @@ function *(c::Real, W::PrimitiveState)
     )
 end
 
+import Base./
+function /(W1::PrimitiveState, W2::PrimitiveState)
+    return PrimitiveState(
+        W1.ρ / W2.ρ,
+        W1.u / W2.u,
+        W1.p / W2.p,
+    )
+end
 
 """
     ConservedState{T<:Real} <: AbstractState
@@ -171,6 +188,10 @@ function total_enthalpy(W::PrimitiveState, eos::PerfectGasEOS)
     a = sound_speed(W, eos)
     return a^2 / (eos.γ - 1) + 0.5 * W.u^2
 end
+
+#TODO: docstring
+internal_energy(U::ConservedState, eos::PerfectGasEOS) = (U.E / U.ρ) - 0.5 * (U.ρu/U.ρ)^2
+internal_energy(W::PrimitiveState, eos::PerfectGasEOS) = W.p / ((eos.γ - 1) * W.ρ)
 
 
 # flux

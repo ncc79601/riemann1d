@@ -55,8 +55,22 @@ abstract type AbstractBoundaryCondition end
 
 
 """
+
+"""
+abstract type AbstractReconstructMethod end
+
+
+"""
     AbstractLimiter
 
 Abstract supertype for slope limiter implementations.
 """
 abstract type AbstractLimiter end
+
+
+"""
+    AbstractIntegrator
+
+Abstract supertype for time integrator.
+"""
+abstract type AbstractIntegrator end
