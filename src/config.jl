@@ -38,7 +38,7 @@ function SolverConfig(
     # kwargs
     reconstruction::R=SecondOrderReconstruct(),
     limiter       ::L=SuperBeeLimiter(),
-    integrator    ::I=ExplicitEuler(),
+    integrator    ::I=TVDRK2(),
     init_steps    ::Integer=5,
     init_cfl      ::T=convert(T, 0.2)
 ) where {S<:AbstractRiemannSolver, T<:Real, I<:AbstractIntegrator, R<:AbstractReconstructMethod, L<:AbstractLimiter}
