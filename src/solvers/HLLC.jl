@@ -81,10 +81,8 @@ function compute_numerical_flux(
 
     S_L, S_R = wave_speed_estimate(solver.estimate_method, W_L, W_R, eos)
     
-    S★ = (
-        (p_R-p_L) + (ρ_L * u_L * (S_L-u_L) - ρ_R * u_R * (S_R-u_R))) /
-        (ρ_L * (S_L-u_L) - ρ_R * (S_R-u_R)
-    )
+    S★ = ((p_R-p_L) + (ρ_L * u_L * (S_L-u_L) - ρ_R * u_R * (S_R-u_R))) /
+         (ρ_L * (S_L-u_L) - ρ_R * (S_R-u_R))
 
     # branch select
     if 0 < S_L
