@@ -41,6 +41,7 @@ function reconstruct!(
     ng = grid.ghost_cells
 
     # extract component arrays
+    #TODO: too slow, needs to be refactored
     ρ_arr = [W_padded[k].ρ for k in 1-ng:N+ng]
     ρ_arr = OffsetArray(ρ_arr, 1-ng:N+ng)
     
@@ -52,9 +53,9 @@ function reconstruct!(
 
     # reconstruction, including ghost cell 0 and N+1
     for i in 0:N+1
-        ρ_L, ρ_R = muscl_scalar(ρ_arr, i, limiter)
-        u_L, u_R = muscl_scalar(u_arr, i, limiter)
-        p_L, p_R = muscl_scalar(p_arr, i, limiter)
+        ρ_L, ρ_R = muscl_reconstruct(ρ_arr, i, limiter)
+        u_L, u_R = muscl_reconstruct(u_arr, i, limiter)
+        p_L, p_R = muscl_reconstruct(p_arr, i, limiter)
         
         W_L[i] = PrimitiveState(ρ_L, u_L, p_L)
         W_R[i] = PrimitiveState(ρ_R, u_R, p_R)
@@ -72,9 +73,9 @@ safe_slope(Δ::Real) = copysign(max(abs(Δ), eps(typeof(Δ))), Δ)
 
 
 """
-    muscl_scalar(arr, j, limiter)
+    muscl_reconstruct(arr, j, limiter)
 """
-function muscl_scalar(u::AbstractVector, i::Int, limiter::AbstractLimiter)
+function muscl_reconstruct(u::AbstractVector{<:Real}, i::Int, limiter::AbstractLimiter)
     Δ_L = u[i] - u[i-1]
     Δ_R = u[i+1] - u[i]
     Δ = Δ_R # right slope as base

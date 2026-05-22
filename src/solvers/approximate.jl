@@ -162,7 +162,7 @@ Adaptive iterative Riemann solver (AIRS). Use PVRS if ``Q:=\\frac{p_\\max}{p_\\m
 # Fields:
  - `Q_user::T`: user-specified threshold for switching between PVRS and exact solver.
 """
-struct AIRS{T} <: AbstractRiemannSolver where T <: Real
+struct AIRS{T<:Real} <: AbstractRiemannSolver
     Q_user::T
 end
 function AIRS(; Q_user::Real = 2.0)

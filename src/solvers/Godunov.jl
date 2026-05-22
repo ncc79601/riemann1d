@@ -12,7 +12,7 @@ struct GodunovSolver <: AbstractRiemannSolver end
 Godunov flux: solve the exact Riemann problem and evaluate the physical flux at ``x/t = 0``.
 """
 function compute_numerical_flux(
-    solver::GodunovSolver,
+    solver::Union{GodunovSolver, ExactSolver},
     W_L::PrimitiveState,
     W_R::PrimitiveState,
     eos::PerfectGasEOS,

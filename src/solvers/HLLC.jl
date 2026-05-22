@@ -22,6 +22,7 @@ Compute the wave speeds ``S_L``, ``S_R`` for the HLLC solver using the specified
 # Returns:
 - `(S_L, S_R)`: left and right wave speeds
 """
+#TODO: change to multiple dispatch
 function compute_HLLC_wave_speeds(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS, method::HLLCEstimateMethod = RoeEstimate)
     # compute wave speeds S_L, S_R, and S_M using the HLLC solver
     u_L, u_R = W_L.u, W_R.u
