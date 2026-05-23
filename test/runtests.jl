@@ -1,5 +1,7 @@
 using Riemann1D
 using Test
+using Aqua
+using JET
 
 @testset "Riemann1D" begin
     @testset "module loads and exports" begin
@@ -109,5 +111,61 @@ using Test
             @test F_num.momentum ≈ F_ref.momentum
             @test F_num.energy ≈ F_ref.energy
         end
+    end
+
+    @testset "end-to-end: Sod shock tube (1st order Godunov)" begin
+        grid = UniformGrid1D(-0.5, 0.5, 100; ghost_cells = 2)
+        problem = SodProblem()
+        eos = PerfectGasEOS(1.4)
+
+        U = init_simulation(problem, grid, eos)
+        config = SolverConfig(GodunovSolver(), 0.9, 0.25, 1000;
+            reconstruction = NoReconstruct(),
+            limiter = NoLimiter(),
+            integrator = ExplicitEuler(),
+            init_steps = 5,
+            init_cfl = 0.2
+        )
+        _, n_steps, _ = run_simulation!(U, grid, eos, config)
+        W = [conserved_to_primitive(U[i], eos) for i in 1:(grid.N)]
+        @test n_steps > 0
+        @test all(w -> w.ρ > 0, W)
+        @test all(w -> w.p > 0, W)
+    end
+
+    @testset "end-to-end: Sod shock tube (HLLC + vanLeer + TVDRK2)" begin
+        grid = UniformGrid1D(-0.5, 0.5, 100; ghost_cells = 2)
+        problem = SodProblem()
+        eos = PerfectGasEOS(1.4)
+
+        U = init_simulation(problem, grid, eos)
+        config = SolverConfig(HLLC(), 0.4, 0.25, 1000;
+            reconstruction = SecondOrderReconstruct(),
+            limiter = vanLeerLimiter(),
+            integrator = TVDRK2(),
+            init_steps = 5,
+            init_cfl = 0.2
+        )
+        _, n_steps, _ = run_simulation!(U, grid, eos, config)
+        W = [conserved_to_primitive(U[i], eos) for i in 1:(grid.N)]
+        @test n_steps > 0
+        @test all(w -> w.ρ > 0, W)
+        @test all(w -> w.p > 0, W)
+    end
+
+    @testset "Aqua check" begin
+        Aqua.test_all(
+            Riemann1D;
+            ambiguities = false,
+            piracies = true,
+            stale_deps = true,
+            unbound_args = true,
+            undefined_exports = true,
+            project_extras = true
+        )
+    end
+
+    @testset "JET check" begin
+        JET.test_package(Riemann1D; target_modules = (Riemann1D,))
     end
 end
