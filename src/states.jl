@@ -172,7 +172,7 @@ Specific internal energy ``e``. For a perfect gas:
 - Conserved: ``e = E/\\rho - \\frac{1}{2} u^2``
 """
 function internal_energy(U::ConservedState, eos::PerfectGasEOS)
-    (U.E / U.ρ) - 0.5 * (U.ρu/U.ρ)^2
+    (U.E / U.ρ) - 0.5 * (U.ρu / U.ρ)^2
 end
 function internal_energy(W::PrimitiveState, eos::PerfectGasEOS)
     W.p / ((eos.γ - 1) * W.ρ)
@@ -214,11 +214,9 @@ function Flux(; mass::Real, momentum::Real, energy::Real)
     Flux(mass, momentum, energy)
 end # kwargs
 function Flux(F::AbstractVector{<:Real})
-    length(F) == 3 || throw(
-        ArgumentError(
-        "flux vector F must only contain 3 elements (mass, momentum, energy)",
-    ),
-    )
+    length(F) == 3 || throw(ArgumentError(
+        "flux vector F must only contain 3 elements (mass, momentum, energy)"
+    ))
     return Flux(F[1], F[2], F[3])
 end
 

@@ -68,11 +68,9 @@ function SolverConfig(
     # limiter & integrator
     if isa(reconstruction, SecondOrderReconstruct) && !(isa(limiter, NoLimiter))
         if isa(integrator, ExplicitEuler)
-            throw(
-                ArgumentError(
-                "In semi-discrete schemes, second order reconstruction cannot be used in conjunction with explicit Euler integrator (otherwise unconditioned unstable). Consider using TVD-RK2 integrator instead",
-            ),
-            )
+            throw(ArgumentError(
+                "In semi-discrete schemes, second order reconstruction cannot be used in conjunction with explicit Euler integrator (otherwise unconditioned unstable). Consider using TVD-RK2 integrator instead"
+            ))
         end
         # check TVD criterion
         ξ_max = ξ(1000.0, limiter)
