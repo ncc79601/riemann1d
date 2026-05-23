@@ -16,7 +16,9 @@ struct SwebyLimiter{T <: Real} <: AbstractLimiter
     β::T
 end
 
-SwebyLimiter(; β::Real = 2.0) = SwebyLimiter{typeof(β)}(β)
+function SwebyLimiter(; β::Real = 2.0)
+    SwebyLimiter{typeof(β)}(β)
+end
 
 # MinBee and SuperBee as special cases of Sweby limiter
 """
@@ -26,7 +28,9 @@ Minbee limiter. Returns a [`SwebyLimiter`](@ref) object with `β = 1.0`.
 
 ``\\xi(r) = \\text{max}(0, \\text{min}(1, \\beta r), \\text{min}(r, \\beta))``.
 """
-MinBeeLimiter() = SwebyLimiter(β = 1.0)
+function MinBeeLimiter()
+    SwebyLimiter(β = 1.0)
+end
 
 """
     SuperBeeLimiter() -> SwebyLimiter
@@ -35,7 +39,9 @@ Superbee limiter. Returns a [`SwebyLimiter`](@ref) object with `β = 2.0`.
 
 ``\\xi(r) = \\text{max}(0, \\text{min}(1, 2r), \\text{min}(r, 2))``.
 """
-SuperBeeLimiter() = SwebyLimiter(β = 2.0)
+function SuperBeeLimiter()
+    SwebyLimiter(β = 2.0)
+end
 
 """
     UltraBeeLimiter <: AbstractLimiter
@@ -58,7 +64,6 @@ MC limiter: ``\\xi(r) = \\text{max}(0, \\text{min}(2r, (1 + r) / 2, 2))``.
 """
 struct MCLimiter <: AbstractLimiter end
 
-
 """
     ξ(r::Real, limiter::AbstractLimiter) -> Real
 
@@ -72,7 +77,7 @@ end
 # Sweby, SuperBee, MinBee
 function ξ(r::Real, limiter::SwebyLimiter)
     β = limiter.β
-    return max(0, min(1, β*r), min(r, β))
+    return max(0, min(1, β * r), min(r, β))
 end
 
 # UltraBee
@@ -87,5 +92,5 @@ end
 
 # MC
 function ξ(r::Real, limiter::MCLimiter)
-    return max(0, min(2r, (1+r)/2, 2))
+    return max(0, min(2r, (1 + r) / 2, 2))
 end

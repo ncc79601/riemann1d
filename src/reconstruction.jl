@@ -1,7 +1,6 @@
 struct NoReconstruct <: AbstractReconstructMethod end
 struct SecondOrderReconstruct <: AbstractReconstructMethod end
 
-
 """
     reconstruct!(W_L, W_R, W_padded, grid, method, limiter)
 
@@ -12,52 +11,50 @@ Reconstruct left and right face values from a padded cell-averaged array. `W_pad
 `limiter = nothing` is treated as first-order (no reconstruction).
 """
 function reconstruct!(
-    W_L::AbstractVector{PrimitiveState},
-    W_R::AbstractVector{PrimitiveState},
-    W_padded,
-    grid::UniformGrid1D,
-    method::Union{NoReconstruct, Nothing},
-    limiter::Union{AbstractLimiter, Nothing},
+        W_L::AbstractVector{PrimitiveState},
+        W_R::AbstractVector{PrimitiveState},
+        W_padded,
+        grid::UniformGrid1D,
+        method::Union{NoReconstruct, Nothing},
+        limiter::Union{AbstractLimiter, Nothing}
 )
     N = grid.N
-    for i in 0:N+1
+    for i in 0:(N + 1)
         W_L[i] = W_R[i] = W_padded[i]
     end
 end
 
-
 function reconstruct!(
-    W_L::AbstractVector{PrimitiveState},
-    W_R::AbstractVector{PrimitiveState},
-    W_padded,
-    grid::UniformGrid1D,
-    method::SecondOrderReconstruct,
-    limiter::AbstractLimiter,
+        W_L::AbstractVector{PrimitiveState},
+        W_R::AbstractVector{PrimitiveState},
+        W_padded,
+        grid::UniformGrid1D,
+        method::SecondOrderReconstruct,
+        limiter::AbstractLimiter
 )
-    N  = grid.N
+    N = grid.N
     ng = grid.ghost_cells
 
     # extract component arrays (allocates — revisit when profiling shows bottleneck)
-    ρ_arr = [W_padded[k].ρ for k in 1-ng:N+ng]
-    ρ_arr = OffsetArray(ρ_arr, 1-ng:N+ng)
-    
-    u_arr = [W_padded[k].u for k in 1-ng:N+ng]
-    u_arr = OffsetArray(u_arr, 1-ng:N+ng)
-    
-    p_arr = [W_padded[k].p for k in 1-ng:N+ng]
-    p_arr = OffsetArray(p_arr, 1-ng:N+ng)
+    ρ_arr = [W_padded[k].ρ for k in (1 - ng):(N + ng)]
+    ρ_arr = OffsetArray(ρ_arr, (1 - ng):(N + ng))
+
+    u_arr = [W_padded[k].u for k in (1 - ng):(N + ng)]
+    u_arr = OffsetArray(u_arr, (1 - ng):(N + ng))
+
+    p_arr = [W_padded[k].p for k in (1 - ng):(N + ng)]
+    p_arr = OffsetArray(p_arr, (1 - ng):(N + ng))
 
     # reconstruction, including ghost cell 0 and N+1
-    for i in 0:N+1
+    for i in 0:(N + 1)
         ρ_L, ρ_R = muscl_reconstruct(ρ_arr, i, limiter)
         u_L, u_R = muscl_reconstruct(u_arr, i, limiter)
         p_L, p_R = muscl_reconstruct(p_arr, i, limiter)
-        
+
         W_L[i] = PrimitiveState(ρ_L, u_L, p_L)
         W_R[i] = PrimitiveState(ρ_R, u_R, p_R)
     end
 end
-
 
 """
     safe_Δ(Δ::Real)
@@ -65,8 +62,9 @@ end
 Return `abs(Δ)` clamped to a minimum of `eps(typeof(Δ))` so that slope-ratio
 division never divides by zero.
 """
-safe_Δ(Δ::Real) = copysign(max(abs(Δ), eps(typeof(Δ))), Δ)
-
+function safe_Δ(Δ::Real)
+    copysign(max(abs(Δ), eps(typeof(Δ))), Δ)
+end
 
 """
     muscl_reconstruct(u::AbstractVector{<:Real}, i::Int, limiter::AbstractLimiter) -> (Real, Real)
@@ -77,13 +75,13 @@ Perform scalar MUSCL reconstruction for scalar array `u` at `u[i]`.
 - `u_L, u_R`: boundary extrapolated values at cell `i`
 """
 function muscl_reconstruct(u::AbstractVector{<:Real}, i::Int, limiter::AbstractLimiter)
-    Δ_L = u[i] - u[i-1]
-    Δ_R = u[i+1] - u[i]
+    Δ_L = u[i] - u[i - 1]
+    Δ_R = u[i + 1] - u[i]
     Δ = Δ_R # right slope as base
 
     r = Δ_L / safe_Δ(Δ_R) # slope ratio
     Δ̄ = Δ * ξ(r, limiter) # limited slope
-    
+
     # calculate boundary extrapolated values
     u_L = u[i] - 0.5 * Δ̄
     u_R = u[i] + 0.5 * Δ̄

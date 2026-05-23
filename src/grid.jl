@@ -24,12 +24,12 @@ struct UniformGrid1D{T} <: AbstractGrid
     x_faces::Vector{T} # cell edge coordinates
 end
 
-function UniformGrid1D(xmin::Real, xmax::Real, N::Int; ghost_cells::Int=1)
+function UniformGrid1D(xmin::Real, xmax::Real, N::Int; ghost_cells::Int = 1)
     xmin_prom, xmax_prom = promote(xmin, xmax)
     T = typeof(xmin_prom)
     Δx = (xmax_prom - xmin_prom) / T(N)
-    x_centers = range(start=xmin_prom + Δx/2, stop=xmax_prom - Δx/2, length=N)
-    x_faces = range(start=xmin_prom, stop=xmax_prom, length=N+1)
+    x_centers = range(start = xmin_prom + Δx/2, stop = xmax_prom - Δx/2, length = N)
+    x_faces = range(start = xmin_prom, stop = xmax_prom, length = N+1)
 
     # check number for ghost cells
     if ghost_cells <= 0
@@ -39,7 +39,12 @@ function UniformGrid1D(xmin::Real, xmax::Real, N::Int; ghost_cells::Int=1)
     end
 
     return UniformGrid1D{T}(
-        xmin_prom, xmax_prom, N, ghost_cells, Δx,
-        collect(x_centers), collect(x_faces)
+        xmin_prom,
+        xmax_prom,
+        N,
+        ghost_cells,
+        Δx,
+        collect(x_centers),
+        collect(x_faces)
     )
 end

@@ -12,11 +12,15 @@ Ideal / perfect gas equation of state.
 """
 struct PerfectGasEOS{T <: Real} <: AbstractEOS
     γ::T
-    function PerfectGasEOS{T}(γ::T) where T <: Real
+    function PerfectGasEOS{T}(γ::T) where {T <: Real}
         γ <= 1.0 && throw(DomainError(γ, "specific heat ratio γ must be larger than 1.0"))
         return new{T}(γ)
     end
 end
 # external constructors
-PerfectGasEOS(γ::Real) = PerfectGasEOS{typeof(γ)}(γ) # auto type inferring
-PerfectGasEOS(; γ::Real=1.4) = PerfectGasEOS(γ) # kwargs
+function PerfectGasEOS(γ::Real)
+    PerfectGasEOS{typeof(γ)}(γ)
+end # auto type inferring
+function PerfectGasEOS(; γ::Real = 1.4)
+    PerfectGasEOS(γ)
+end # kwargs

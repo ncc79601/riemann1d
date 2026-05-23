@@ -4,7 +4,6 @@ Abstract type representing an exact Riemann solver for the compressible Euler eq
 """
 struct ExactSolver <: AbstractRiemannSolver end
 
-
 """
     NonlinearWaveType
 
@@ -14,7 +13,6 @@ Enumeration of nonlinear wave character in the Riemann solution.
 - `Rarefaction`
 """
 @enum NonlinearWaveType Shock Rarefaction
-
 
 """
     NonlinearWaveStructure{T<:Real}
@@ -31,14 +29,13 @@ Describes a single nonlinear wave in the Riemann solution.
 struct NonlinearWaveStructure{T <: Real}
     # type of nonlinear wave
     wave_type::NonlinearWaveType # Shock or Rarefaction
-    ρ★  ::T
+    ρ★::T
 
     # wave velocities
-    S   ::T # shock velocities (NaN if rarefaction)
+    S::T # shock velocities (NaN if rarefaction)
     head::T # rarefaction head velocity
     tail::T # rarefaction tail velocity
 end
-
 
 """
     ExactRiemannSolution{T<:Real} <: AbstractRiemannSolution
@@ -64,7 +61,6 @@ struct ExactRiemannSolution{T <: Real} <: AbstractRiemannSolution
     left_wave::NonlinearWaveStructure{T}
     right_wave::NonlinearWaveStructure{T}
 end
-
 
 """
     pressure_function(p::Real, W_K::PrimitiveState, eos::PerfectGasEOS)
@@ -95,10 +91,9 @@ function pressure_function(p::Real, W_K::PrimitiveState, eos::PerfectGasEOS)
         return (p - p_K) * sqrt(A_K / (p + B_K))
     else # rarefaction, from generalized Riemann invariants
         a_K = sound_speed(W_K, eos)
-        return 2a_K / (γ - 1) * ((p / p_K) ^ ((γ - 1) / (2γ)) - 1)
+        return 2a_K / (γ - 1) * ((p / p_K)^((γ - 1) / (2γ)) - 1)
     end
 end
-
 
 """
     pressure_function(p::Real, W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS)
@@ -114,11 +109,15 @@ Full pressure function ``f(p) = f_L(p) + f_R(p) + u_R - u_L``. The star-region p
 # Returns
 - `f(p)`: pressure function value
 """
-function pressure_function(p::Real, W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS)
+function pressure_function(
+        p::Real,
+        W_L::PrimitiveState,
+        W_R::PrimitiveState,
+        eos::PerfectGasEOS
+)
     u_L, u_R = W_L.u, W_R.u
     return pressure_function(p, W_L, eos) + pressure_function(p, W_R, eos) + (u_R - u_L)
 end
-
 
 """
     PressureGuessMethod
@@ -129,7 +128,6 @@ Enumeration of initial pressure guess methods:
 - `PV`: primitive variable linearisation
 """
 @enum PressureGuessMethod TR TS PV
-
 
 """
     guess_p★(W_L, W_R, eos; method = TS)
@@ -145,12 +143,17 @@ Compute an initial guess for the star-region pressure `p★`.
 # Returns
 - Initial estimate of `p★`
 """
-function guess_p★(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS; method::PressureGuessMethod = TS)
+function guess_p★(
+        W_L::PrimitiveState,
+        W_R::PrimitiveState,
+        eos::PerfectGasEOS;
+        method::PressureGuessMethod = TS
+)
     # extract primitive variables
     ρ_L, u_L, p_L = W_L.ρ, W_L.u, W_L.p
     ρ_R, u_R, p_R = W_R.ρ, W_R.u, W_R.p
     γ = eos.γ
-    
+
     if method == TS # two-shock guess
         A_L = 2 / (ρ_L * (γ + 1))
         B_L = (γ - 1) / (γ + 1) * p_L
@@ -159,16 +162,18 @@ function guess_p★(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS
         g_L(p) = √(A_L / (p + B_L))
         g_R(p) = √(A_R / (p + B_R))
 
-        p₀ = guess_p★(W_L, W_R, eos, method=PV) # PV guess as initial guess
+        p₀ = guess_p★(W_L, W_R, eos, method = PV) # PV guess as initial guess
         return (g_L(p₀) * p_L + g_R(p₀) * p_R - (u_R - u_L)) / (g_L(p₀) + g_R(p₀))
-    
+
     elseif method == TR # two-rarefaction guess
         z = (γ - 1) / (2γ)
         a_L = sound_speed(W_L, eos)
         a_R = sound_speed(W_R, eos)
 
-        return ((a_L + a_R - (γ-1)/2 * (u_R - u_L)) / (a_L / p_L^z + a_R / p_R^z)) ^ (1/z)
-    
+        return (
+            (a_L + a_R - (γ - 1) / 2 * (u_R - u_L)) / (a_L / p_L^z + a_R / p_R^z)
+        )^(1 / z)
+
     else # primitive-variable guess
         a_L = sound_speed(W_L, eos)
         a_R = sound_speed(W_R, eos)
@@ -176,7 +181,6 @@ function guess_p★(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS
         return (p_L + p_R) / 2 + ((u_L - u_R) * (ρ_L + ρ_R) * (a_L + a_R)) / 8
     end
 end
-
 
 """
     solve_p★_Newton_loop(W_L, W_R, eos, p0; max_iter=50, tol=1e-10)
@@ -194,8 +198,14 @@ Low-level Newton–Raphson iteration for the star-region pressure solution. Sepa
 # Returns
 - `(p★, n_iter)`: converged star-region pressure and number of iterations taken
 """
-function solve_p★_Newton_loop(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS, p0;
-                              max_iter=50, tol=1e-10)
+function solve_p★_Newton_loop(
+        W_L::PrimitiveState,
+        W_R::PrimitiveState,
+        eos::PerfectGasEOS,
+        p0;
+        max_iter = 50,
+        tol = 1e-10
+)
     f(p) = pressure_function(p, W_L, W_R, eos) # currying the pressure function
     p★ = p0 # initial guess
 
@@ -222,7 +232,6 @@ function solve_p★_Newton_loop(W_L::PrimitiveState, W_R::PrimitiveState, eos::P
     return (p★, max_iter)
 end
 
-
 """
     solve_p★(W_L, W_R, eos; init_guess_method=TS, max_iter=50, tol=1e-10)
 
@@ -239,13 +248,18 @@ Solve for the star-region pressure ``p_*`` in the Riemann problem. Use [`guess_p
 # Returns
 - `p★`: the star-region pressure
 """
-function solve_p★(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS;
-                  init_guess_method::PressureGuessMethod=TS, max_iter=50, tol=1e-10)
-    p0 = guess_p★(W_L, W_R, eos, method=init_guess_method)
-    p★, _ = solve_p★_Newton_loop(W_L, W_R, eos, p0; max_iter=max_iter, tol=tol)
+function solve_p★(
+        W_L::PrimitiveState,
+        W_R::PrimitiveState,
+        eos::PerfectGasEOS;
+        init_guess_method::PressureGuessMethod = TS,
+        max_iter = 50,
+        tol = 1e-10
+)
+    p0 = guess_p★(W_L, W_R, eos, method = init_guess_method)
+    p★, _ = solve_p★_Newton_loop(W_L, W_R, eos, p0; max_iter = max_iter, tol = tol)
     return p★
 end
-
 
 """
     calc_u★_from_p★(W_L, W_R, eos, p★)
@@ -265,17 +279,16 @@ Compute ``u_*`` from ``p_*`` using the relation ``u_* = \\frac{1}{2}(u_L + u_R) 
 RmSv-4.2
 """
 function calc_u★_from_p★(
-    W_L::PrimitiveState,
-    W_R::PrimitiveState,
-    eos::PerfectGasEOS,
-    p★ ::Real
+        W_L::PrimitiveState,
+        W_R::PrimitiveState,
+        eos::PerfectGasEOS,
+        p★::Real
 )
     u_L, u_R = W_L.u, W_R.u
     f_L = pressure_function(p★, W_L, eos)
     f_R = pressure_function(p★, W_R, eos)
     return 0.5 * (u_L + u_R) + 0.5 * (f_R - f_L)
 end
-
 
 """
     calc_wave_structure_from_p★_and_u★(W_L, W_R, eos, p★, u★)
@@ -304,13 +317,13 @@ rarefaction, and computes:
 RmSv-3.1, RmSv-4.4
 """
 function calc_wave_structure_from_p★_and_u★(
-    W_L::PrimitiveState,
-    W_R::PrimitiveState,
-    eos::PerfectGasEOS,
-    p★ ::Real,
-    u★ ::Real,
-    ρ★_L = NaN,
-    ρ★_R = NaN
+        W_L::PrimitiveState,
+        W_R::PrimitiveState,
+        eos::PerfectGasEOS,
+        p★::Real,
+        u★::Real,
+        ρ★_L = NaN,
+        ρ★_R = NaN
 )
     # extract primitive variables
     ρ_L, u_L, p_L = W_L.ρ, W_L.u, W_L.p
@@ -327,16 +340,16 @@ function calc_wave_structure_from_p★_and_u★(
     if p★ > p_L # left shock
         wave_type_L = Shock
         # shock velocity:
-        S_L = u_L - a_L * √((γ+1)/(2γ) * (p★ / p_L) + (γ-1)/(2γ))
+        S_L = u_L - a_L * √((γ + 1) / (2γ) * (p★ / p_L) + (γ - 1) / (2γ))
         if isnan(ρ★_L)
-            ρ★_L = ρ_L * (p★/p_L + (γ-1)/(γ+1)) / 
-                         (((γ-1)/(γ+1)) * (p★/p_L) + 1)
+            ρ★_L = ρ_L * (p★ / p_L + (γ - 1) / (γ + 1)) /
+                   (((γ - 1) / (γ + 1)) * (p★ / p_L) + 1)
         end
         head_L = tail_L = NaN
     else # left rarefaction
         wave_type_L = Rarefaction
         # compute a★_L using generalized Riemann invariants
-        a★_L = a_L + (γ-1)/2 * (u_L - u★)
+        a★_L = a_L + (γ - 1) / 2 * (u_L - u★)
         # compute ρ★_L by definition of speed of sound
         if isnan(ρ★_L)
             ρ★_L = γ * p★ / (a★_L^2)
@@ -350,15 +363,15 @@ function calc_wave_structure_from_p★_and_u★(
     if p★ > p_R # right shock
         wave_type_R = Shock
         # shock velocity:
-        S_R = u_R + a_R * √((γ+1)/(2γ) * (p★ / p_R) + (γ-1)/(2γ))
+        S_R = u_R + a_R * √((γ + 1) / (2γ) * (p★ / p_R) + (γ - 1) / (2γ))
         if isnan(ρ★_R)
-            ρ★_R = ρ_R * (p★/p_R + (γ-1)/(γ+1)) / 
-               (((γ-1)/(γ+1)) * (p★/p_R) + 1)
+            ρ★_R = ρ_R * (p★ / p_R + (γ - 1) / (γ + 1)) /
+                   (((γ - 1) / (γ + 1)) * (p★ / p_R) + 1)
         end
         head_R = tail_R = NaN
     else # right rarefaction
         wave_type_R = Rarefaction
-        a★_R = a_R - (γ-1)/2 * (u_R - u★)
+        a★_R = a_R - (γ - 1) / 2 * (u_R - u★)
         if isnan(ρ★_R)
             ρ★_R = γ * p★ / (a★_R^2)
         end
@@ -367,24 +380,11 @@ function calc_wave_structure_from_p★_and_u★(
         S_R = NaN
     end
 
-    wave_structure_L = NonlinearWaveStructure(
-        wave_type_L,
-        ρ★_L,
-        S_L,
-        head_L,
-        tail_L
-    )
-    wave_structure_R = NonlinearWaveStructure(
-        wave_type_R,
-        ρ★_R,
-        S_R,
-        head_R,
-        tail_R
-    )
+    wave_structure_L = NonlinearWaveStructure(wave_type_L, ρ★_L, S_L, head_L, tail_L)
+    wave_structure_R = NonlinearWaveStructure(wave_type_R, ρ★_R, S_R, head_R, tail_R)
 
     return (wave_structure_L, wave_structure_R)
 end
-
 
 """
     isvacuum(W_L, W_R, eos)
@@ -410,9 +410,8 @@ function isvacuum(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS)
     a_L = sound_speed(W_L, eos)
     a_R = sound_speed(W_R, eos)
 
-    return (u_R - u_L) >= (2/(γ-1)) * (a_L + a_R)
+    return (u_R - u_L) >= (2 / (γ - 1)) * (a_L + a_R)
 end
-
 
 """
     solve_Riemann_problem_exact(W_L, W_R, eos; init_guess_method=TS, max_iter=50, tol=1e-10)
@@ -444,24 +443,34 @@ eos = PerfectGasEOS(γ=1.4)
 sol = solve_Riemann_problem_exact(W_L, W_R, eos)
 ```
 """
-function solve_Riemann_problem_exact(W_L::PrimitiveState, W_R::PrimitiveState, eos::PerfectGasEOS;
-                              init_guess_method::PressureGuessMethod=TS,
-                              max_iter=50, tol=1e-10)
-
+function solve_Riemann_problem_exact(
+        W_L::PrimitiveState,
+        W_R::PrimitiveState,
+        eos::PerfectGasEOS;
+        init_guess_method::PressureGuessMethod = TS,
+        max_iter = 50,
+        tol = 1e-10
+)
     if isvacuum(W_L, W_R, eos)
-        throw(ArgumentError("initial states lead to presence of vacuum in the solution, which is not supported by this solver"))
+        throw(
+            ArgumentError(
+            "initial states lead to presence of vacuum in the solution, which is not supported by this solver",
+        ),
+        )
     end
 
     p★ = solve_p★(
-        W_L, W_R, eos;
-        init_guess_method=init_guess_method, max_iter=max_iter, tol=tol
+        W_L,
+        W_R,
+        eos;
+        init_guess_method = init_guess_method,
+        max_iter = max_iter,
+        tol = tol
     )
     u★ = calc_u★_from_p★(W_L, W_R, eos, p★)
-    left_wave, right_wave =
-        calc_wave_structure_from_p★_and_u★(W_L, W_R, eos, p★, u★)
+    left_wave, right_wave = calc_wave_structure_from_p★_and_u★(W_L, W_R, eos, p★, u★)
     return ExactRiemannSolution(eos, W_L, W_R, p★, u★, left_wave, right_wave)
 end
-
 
 """
     sample_exact_solution(x, t, solution::ExactRiemannSolution)
@@ -481,13 +490,14 @@ RmSv-4.5
 """
 function sample_exact_solution(x, t, solution::ExactRiemannSolution)
     t <= 0 && throw(ArgumentError("t must be larger than 0"))
-    
+
     ξ = x / t # self similar variable
 
     γ = solution.eos.γ
     W_L, W_R = solution.W_L, solution.W_R
     ρ_L, u_L, p_L = W_L.ρ, W_L.u, W_L.p
     ρ_R, u_R, p_R = W_R.ρ, W_R.u, W_R.p
+
     p★, u★ = solution.p★, solution.u★
     L = solution.left_wave
     R = solution.right_wave
@@ -509,8 +519,8 @@ function sample_exact_solution(x, t, solution::ExactRiemannSolution)
     # inside WLfan (if left rarefaction)
     if L.wave_type == Rarefaction && ξ < L.tail
         a_L = sound_speed(W_L, solution.eos)
-        ρ = ρ_L * (2/(γ+1) + (γ-1)/((γ+1)*a_L) * (u_L - ξ)) ^ (2/(γ-1))
-        u = 2/(γ+1) * ((γ-1)/2 * u_L + ξ + a_L)
+        ρ = ρ_L * (2 / (γ + 1) + (γ - 1) / ((γ + 1) * a_L) * (u_L - ξ))^(2 / (γ - 1))
+        u = 2 / (γ + 1) * ((γ - 1) / 2 * u_L + ξ + a_L)
         p = p_L * (ρ / ρ_L)^γ
         return PrimitiveState(ρ, u, p)
     end
@@ -518,7 +528,7 @@ function sample_exact_solution(x, t, solution::ExactRiemannSolution)
     if ξ < u★ # left star region
         return PrimitiveState(L.ρ★, u★, p★)
     end
-    
+
     # RIGHT OF CONTACT WAVE
     # ahead of right wave (right shock & rarefaction)
     if R.wave_type == Shock # right shock wave
@@ -533,8 +543,8 @@ function sample_exact_solution(x, t, solution::ExactRiemannSolution)
     # inside WRfan (if right rarefaction)
     if R.wave_type == Rarefaction && ξ > R.tail
         a_R = sound_speed(W_R, solution.eos)
-        ρ = ρ_R * (2/(γ+1) + (γ-1)/((γ+1)*a_R) * (ξ - u_R)) ^ (2/(γ-1))
-        u = 2/(γ+1) * ((γ-1)/2 * u_R + ξ - a_R)
+        ρ = ρ_R * (2 / (γ + 1) + (γ - 1) / ((γ + 1) * a_R) * (ξ - u_R))^(2 / (γ - 1))
+        u = 2 / (γ + 1) * ((γ - 1) / 2 * u_R + ξ - a_R)
         p = p_R * (ρ / ρ_R)^γ
         return PrimitiveState(ρ, u, p)
     else # right star region

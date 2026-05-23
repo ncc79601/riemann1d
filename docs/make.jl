@@ -1,7 +1,7 @@
 using Riemann1D
 using Documenter
 
-DocMeta.setdocmeta!(Riemann1D, :DocTestSetup, :(using Riemann1D); recursive=true)
+DocMeta.setdocmeta!(Riemann1D, :DocTestSetup, :(using Riemann1D); recursive = true)
 
 makedocs(
     modules = [Riemann1D],
@@ -9,15 +9,9 @@ makedocs(
     sitename = "Riemann1D.jl",
     format = Documenter.HTML(
         prettyurls = get(ENV, "CI", "false") == "true",
-        collapselevel = 1,
+        collapselevel = 1
     ),
-    pages = [
-        "Home" => "index.md",
-        "API Reference" => "api.md",
-    ],
+    pages = ["Home" => "index.md", "API Reference" => "api.md"]
 )
 
-deploydocs(
-    repo = "github.com/NCC79601/Riemann1D.git",
-    devbranch = "main",
-)
+deploydocs(repo = "github.com/NCC79601/Riemann1D.git", devbranch = "main")
