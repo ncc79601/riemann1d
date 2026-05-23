@@ -2,7 +2,6 @@ using Riemann1D
 using Test
 
 @testset "Riemann1D" begin
-
     @testset "module loads and exports" begin
         @test isdefined(Riemann1D, :PrimitiveState)
         @test isdefined(Riemann1D, :ConservedState)
@@ -72,9 +71,9 @@ using Test
     end
 
     @testset "Sod problem — consistency check" begin
-        W_L  = PrimitiveState(1.0, 0.0, 1.0)
-        W_R  = PrimitiveState(0.125, 0.0, 0.1)
-        eos  = PerfectGasEOS(1.4)
+        W_L = PrimitiveState(1.0, 0.0, 1.0)
+        W_R = PrimitiveState(0.125, 0.0, 0.1)
+        eos = PerfectGasEOS(1.4)
 
         # Exact solver runs without error
         sol = solve_Riemann_problem_exact(W_L, W_R, eos)
@@ -101,15 +100,14 @@ using Test
             AIRS(),
             ANRS(),
             HLLC(),
-            RoeSolver(),
+            RoeSolver()
         ]
 
         for solver in solvers
             F_num = compute_numerical_flux(solver, W, W, eos)
-            @test F_num.mass     ≈ F_ref.mass
+            @test F_num.mass ≈ F_ref.mass
             @test F_num.momentum ≈ F_ref.momentum
-            @test F_num.energy   ≈ F_ref.energy
+            @test F_num.energy ≈ F_ref.energy
         end
     end
-
 end
