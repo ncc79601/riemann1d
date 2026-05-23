@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  check-format:
+    name: JuliaFormatter Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Julia
+        uses: julia-actions/setup-julia@v3
+        with:
+          version: "1.12"
+
+      - name: Install JuliaFormatter
+        run: julia -e 'using Pkg; Pkg.add("JuliaFormatter")'
+
+      - name: Run Format Check
+        run: |
+          julia --project=@. -e '
+            using JuliaFormatter
+            is_formatted = format(".", overwrite=false)
+            if !is_formatted
+                println("::error::Code is not formatted! Please run `using JuliaFormatter; format(\".\")` locally and push again.")
+            end
+            exit(is_formatted ? 0 : 1)
+          '
