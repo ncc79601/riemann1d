@@ -231,6 +231,7 @@ function evolve!(
         integrator::ExplicitEuler
 )
     w = allocate_work_arrays(U, grid)
+    U_new = w.U_new
 
     t = 0.0
     step = 0
@@ -259,10 +260,10 @@ function evolve!(
         Δt = min(Δt, config.max_time - t)
 
         # 6. forward Euler update
-        forward_euler_step!(U, w.U_new, w.F, grid, Δt)
+        forward_euler_step!(U, U_new, w.F, grid, Δt)
 
         # 7. swap and advance
-        U, w.U_new = w.U_new, U
+        U, U_new = U_new, U
         t += Δt
         step += 1
     end
