@@ -17,7 +17,7 @@ jobs:
       - name: Set up Julia
         uses: julia-actions/setup-julia@v3
         with:
-          version: "1.12"
+          version: '1.12'
 
       - name: Install JuliaFormatter
         run: julia -e 'using Pkg; Pkg.add("JuliaFormatter")'
@@ -29,6 +29,25 @@ jobs:
             is_formatted = format(".", overwrite=false)
             if !is_formatted
                 println("::error::Code is not formatted! Please run `using JuliaFormatter; format(\".\")` locally and push again.")
+                exit(1)
             end
-            exit(is_formatted ? 0 : 1)
           '
+  
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: check-format
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Julia
+        uses: julia-actions/setup-julia@v3
+        with:
+          version: "1.12"
+
+      - name: Cache Julia artifacts
+        uses: julia-actions/cache@v3
+
+      - name: Run tests
+        run: julia --project=. -e 'using Pkg; Pkg.test()'
