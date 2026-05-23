@@ -1,5 +1,7 @@
 using Riemann1D
 using Test
+using Aqua
+using JET
 
 @testset "Riemann1D" begin
     @testset "module loads and exports" begin
