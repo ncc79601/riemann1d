@@ -6,6 +6,10 @@ on:
       - main
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check-format:
     name: JuliaFormatter Check
@@ -51,3 +55,4 @@ jobs:
 
       - name: Run tests
         run: julia --project=. -e 'using Pkg; Pkg.test()'
+
