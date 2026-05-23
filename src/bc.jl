@@ -5,7 +5,6 @@ Transmissive boundary condition. Ghost state equals the adjacent interior state.
 """
 struct TransmissiveBC <: AbstractBoundaryCondition end
 
-
 """
     ghost_state(bc::AbstractBoundaryCondition, W::AbstractState) -> AbstractState
 
@@ -13,8 +12,9 @@ Compute the ghost state from the adjacent interior cell state.
 """
 function ghost_state end
 
-ghost_state(::TransmissiveBC, W::AbstractState) = W
-
+function ghost_state(::TransmissiveBC, W::AbstractState)
+    W
+end
 
 """
     BoundaryFace
@@ -31,7 +31,6 @@ struct BoundaryFace
     interior_idx::Int
     bc::AbstractBoundaryCondition
 end
-
 
 """
     make_boundary_faces(grid::UniformGrid1D, bc::AbstractBoundaryCondition) -> Vector{BoundaryFace}
@@ -54,7 +53,6 @@ function make_boundary_faces(grid::UniformGrid1D, bc::AbstractBoundaryCondition)
     return faces
 end
 
-
 """
     fill_ghost_cells!(U_padded, faces::Vector{BoundaryFace})
 
@@ -67,7 +65,6 @@ function fill_ghost_cells!(U_padded, faces::Vector{BoundaryFace})
     end
 end
 
-
 """
     apply_bc!(W_arr, W_padded, grid::UniformGrid1D, boundaries::Vector{BoundaryFace})
 
@@ -79,8 +76,7 @@ The caller is responsible for pre-allocating `W_padded` with the correct
 `OffsetArray` indexing (physical cells at `1:grid.N`, ghosts at `1-ng:0`
 and `N+1:N+ng`).
 """
-function apply_bc!(W_arr, W_padded, grid::UniformGrid1D,
-                   boundaries::Vector{BoundaryFace})
+function apply_bc!(W_arr, W_padded, grid::UniformGrid1D, boundaries::Vector{BoundaryFace})
     for i in 1:grid.N
         W_padded[i] = W_arr[i]
     end

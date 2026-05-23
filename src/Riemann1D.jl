@@ -13,7 +13,15 @@ using OffsetArrays
 
 # abstract type hierarchy
 include("types.jl")
-export AbstractState, AbstractEOS, AbstractRiemannSolution, AbstractRiemannSolver, AbstractGrid, AbstractBoundaryCondition, AbstractReconstructMethod, AbstractLimiter, AbstractIntegrator
+export AbstractState,
+       AbstractEOS,
+       AbstractRiemannSolution,
+       AbstractRiemannSolver,
+       AbstractGrid,
+       AbstractBoundaryCondition,
+       AbstractReconstructMethod,
+       AbstractLimiter,
+       AbstractIntegrator
 
 # equations of state
 include("eos.jl")
@@ -22,7 +30,8 @@ export PerfectGasEOS
 # primitive / conserved variables, flux structs and conversions
 include("states.jl")
 export PrimitiveState, ConservedState, Flux
-export conserved_to_primitive, primitive_to_conserved, sound_speed, total_enthalpy, internal_energy
+export conserved_to_primitive,
+       primitive_to_conserved, sound_speed, total_enthalpy, internal_energy
 
 # SolverConfig
 include("config.jl")
@@ -41,7 +50,9 @@ export NoReconstruct, SecondOrderReconstruct
 
 # limiters
 include("limiters.jl")
-export NoLimiter, SwebyLimiter, MinBeeLimiter, SuperBeeLimiter, UltraBeeLimiter, vanLeerLimiter, MCLimiter
+export NoLimiter,
+       SwebyLimiter, MinBeeLimiter, SuperBeeLimiter, UltraBeeLimiter, vanLeerLimiter,
+       MCLimiter
 
 # dispatch stubs
 include("solvers/interface.jl")
@@ -82,7 +93,13 @@ export HLLC
 
 # helper functions
 include("utils.jl")
-export RiemannProblem, SodProblem, ModifiedSodProblem, OneTwoThreeProblem, WoodwardLeftBlastProblem, WoodwardRightBlastProblem, ShockCollisionProblem
+export RiemannProblem,
+       SodProblem,
+       ModifiedSodProblem,
+       OneTwoThreeProblem,
+       WoodwardLeftBlastProblem,
+       WoodwardRightBlastProblem,
+       ShockCollisionProblem
 export init_simulation, run_simulation!
 export extract_fields, extract_field
 

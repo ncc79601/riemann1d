@@ -15,39 +15,49 @@ Configuration bundle for a finite-volume simulation.
 - `init_cfl::T`: reduced CFL number during ramp-up (default 0.2)
 """
 struct SolverConfig{
-    S<:AbstractRiemannSolver,
-    R<:AbstractReconstructMethod,
-    L<:AbstractLimiter,
-    I<:AbstractIntegrator,
-    T<:Real
+    S <: AbstractRiemannSolver,
+    R <: AbstractReconstructMethod,
+    L <: AbstractLimiter,
+    I <: AbstractIntegrator,
+    T <: Real
 }
-    solver        ::S
+    solver::S
     reconstruction::R
-    limiter       ::L
-    integrator    ::I
-    cfl           ::T
-    max_time      ::T
-    max_steps     ::Int
-    init_steps    ::Int
-    init_cfl      ::T
+    limiter::L
+    integrator::I
+    cfl::T
+    max_time::T
+    max_steps::Int
+    init_steps::Int
+    init_cfl::T
 end
 
 function SolverConfig(
-    solver   ::S,
-    cfl      ::T,
-    max_time ::T,
-    max_steps::Integer;
-    # kwargs
-    reconstruction::R=SecondOrderReconstruct(),
-    limiter       ::L=SuperBeeLimiter(),
-    integrator    ::I=TVDRK2(),
-    init_steps    ::Integer=5,
-    init_cfl      ::T=convert(T, 0.2)
-) where {S<:AbstractRiemannSolver, T<:Real, I<:AbstractIntegrator, R<:AbstractReconstructMethod, L<:AbstractLimiter}
+        solver::S,
+        cfl::T,
+        max_time::T,
+        max_steps::Integer;
+        # kwargs
+        reconstruction::R = SecondOrderReconstruct(),
+        limiter::L = SuperBeeLimiter(),
+        integrator::I = TVDRK2(),
+        init_steps::Integer = 5,
+        init_cfl::T = convert(T, 0.2)
+) where {
+        S <: AbstractRiemannSolver,
+        T <: Real,
+        I <: AbstractIntegrator,
+        R <: AbstractReconstructMethod,
+        L <: AbstractLimiter
+}
     # solver config checks
     # reconstruction & limiter
     if isa(reconstruction, SecondOrderReconstruct) && isa(limiter, NoLimiter)
-        throw(ArgumentError("If second order reconstruction is used, a valid limiter must be specified"))
+        throw(
+            ArgumentError(
+            "If second order reconstruction is used, a valid limiter must be specified",
+        ),
+        )
     end
 
     # cfl & integrator
@@ -58,7 +68,9 @@ function SolverConfig(
     # limiter & integrator
     if isa(reconstruction, SecondOrderReconstruct) && !(isa(limiter, NoLimiter))
         if isa(integrator, ExplicitEuler)
-            throw(ArgumentError("In semi-discrete schemes, second order reconstruction cannot be used in conjunction with explicit Euler integrator (otherwise unconditioned unstable). Consider using TVD-RK2 integrator instead"))
+            throw(ArgumentError(
+                "In semi-discrete schemes, second order reconstruction cannot be used in conjunction with explicit Euler integrator (otherwise unconditioned unstable). Consider using TVD-RK2 integrator instead"
+            ))
         end
         # check TVD criterion
         ξ_max = ξ(1000.0, limiter)
@@ -74,7 +86,14 @@ function SolverConfig(
     end
 
     return SolverConfig{S, R, L, I, T}(
-        solver, reconstruction, limiter, integrator,
-        cfl, max_time, Int(max_steps), Int(init_steps), init_cfl
+        solver,
+        reconstruction,
+        limiter,
+        integrator,
+        cfl,
+        max_time,
+        Int(max_steps),
+        Int(init_steps),
+        init_cfl
     )
 end
